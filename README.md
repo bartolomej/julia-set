@@ -23,8 +23,31 @@ go run *.go <image-size> <Re(c)> <Im(c)> <generation-mode> <outputfile>
 ```
 
 ## Examples
+
+You can use this tool in 3 different ways:
+- run without any arguments (default settings) `go run *.go`
+- pass 4 arguments via cli interface `go run *.go 3000 0.37 -0.4 -i`
+- define configurations in a file `github.com/bartolomej/complex-set-art/renderers.json` and run with `go run *.go <configuration-id>`
+
+
 This command will render .png image of the set (at `C = -0.37 + -0.4`), with a resolution of 3000px,
 and export it to `github.com/bartolomej/complex-set-art/out/out4.png`.
 ```bash
-go run *.go 3000 0.37 -0.4 -i out6.png
+go run *.go 3000 0.37 -0.4 -i
+```
+
+Example configuration for generating static images
+```json
+[
+  {
+    "id": "1",
+    "imageSize": 2000,
+    "centerX": 0,
+    "centerY": 0,
+    "axisSpan": 2,
+    "mode": "-i",
+    "realC": -0.6,
+    "imagC": 0.0
+  }
+]
 ```

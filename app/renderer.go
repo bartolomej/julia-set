@@ -1,4 +1,4 @@
-package main
+package app
 
 // TODO implement video animations rendering
 // https://stackoverflow.com/questions/40715272/create-video-from-camera-frames

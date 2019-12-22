@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"github.com/lucasb-eyer/go-colorful"
@@ -18,8 +18,8 @@ func DrawByThreshold(array [][]float64, width int, height int, file string) {
 	stepX := len(array[0]) / width
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
-			c := array[y*stepY][x*stepX] * 20
-			color := colorful.Hsv(c, c, c)
+			c := array[y*stepY][x*stepX] * 25
+			color := colorful.LinearRgb(c, c/2, c/3)
 			im.Set(x, y, color)
 		}
 	}

@@ -1,4 +1,5 @@
 /.idea
 go.sum
+renders.json
 /out
 /out/*

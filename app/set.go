@@ -5,26 +5,48 @@ import (
 )
 
 type SetParams struct {
-	MaxY           float32
-	MinY           float32
-	MinX           float32
-	MaxX           float32
-	Step           float32
-	MaxIterations  int
-	ThresholdValue int
-	C              complex64
+	CenterX    float32
+	CenterY    float32
+	Resolution float32
+	AxisSpan   float32
+	C          complex64
 }
 
-func CalcByIterations(params SetParams) [][]complex128 {
+type calcParams struct {
+	maxY           float32
+	minY           float32
+	minX           float32
+	maxX           float32
+	step           float32
+	maxIterations  int
+	thresholdValue int
+	c              complex64
+}
+
+func getParams(params SetParams) calcParams {
+	return calcParams{
+		maxY:           params.CenterY + params.AxisSpan,
+		minY:           params.CenterY - params.AxisSpan,
+		minX:           params.CenterX - params.AxisSpan,
+		maxX:           params.CenterX + params.AxisSpan,
+		step:           params.AxisSpan / (params.Resolution * 2),
+		maxIterations:  30,
+		thresholdValue: 40,
+		c:              params.C,
+	}
+}
+
+func CalcByIterations(set SetParams) [][]complex128 {
+	params := getParams(set)
 	var y float32 = 0
 	var x float32 = 0
 	var results [][]complex128
-	for y = params.MaxY; y >= params.MinY; y -= params.Step {
+	for y = params.maxY; y >= params.minY; y -= params.step {
 		var resX []complex128
-		for x = params.MinX; x <= params.MaxX; x += params.Step {
+		for x = params.minX; x <= params.maxX; x += params.step {
 			z := complex128(complex(x, y))
-			for i := 0; i < params.MaxIterations; i++ {
-				z = cmplx.Pow(z, 2) + complex128(params.C)
+			for i := 0; i < params.maxIterations; i++ {
+				z = cmplx.Pow(z, 2) + complex128(params.c)
 			}
 			resX = append(resX, z)
 		}
@@ -33,18 +55,19 @@ func CalcByIterations(params SetParams) [][]complex128 {
 	return results
 }
 
-func CalcByThreshold(params SetParams) [][]float64 {
+func CalcByThreshold(set SetParams) [][]float64 {
+	params := getParams(set)
 	var y float32 = 0
 	var x float32 = 0
 	var results [][]float64
-	for y = params.MaxY; y >= params.MinY; y -= params.Step {
+	for y = params.maxY; y >= params.minY; y -= params.step {
 		var resX []float64
-		for x = params.MinX; x <= params.MaxX; x += params.Step {
+		for x = params.minX; x <= params.maxX; x += params.step {
 			z := complex128(complex(x, y))
 			i := 0
 			//var r float64
-			for cmplx.Abs(z) < float64(params.ThresholdValue) && i < params.MaxIterations {
-				z = cmplx.Pow(z, 2) + complex128(params.C)
+			for cmplx.Abs(z) < float64(params.thresholdValue) && i < params.maxIterations {
+				z = cmplx.Pow(z, 2) + complex128(params.c)
 				// TODO: implement smooth iteration coloring
 				// https://en.wikibooks.org/wiki/Fractals/Iterations_in_the_complex_plane/Julia_set
 				//r = float64(i) - math.Log2(math.Log2(cmplx.Abs(z)))

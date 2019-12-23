@@ -45,17 +45,6 @@ header {
     justify-content: center;
     align-items: center;
     background: rgb(0,0,0);
-    background: linear-gradient(0deg, rgba(0,0,0,1) 35%, rgba(191,60,59,0.6124824929971988) 100%);
-}
-
-#mid-section {
-    height: 40vh;
-    background: rgb(0,0,0);
-    background: linear-gradient(180deg, rgba(0,0,0,1) 35%, rgba(84,90,90,1) 100%);
-}
-
-#mid-section h4 {
-    color: white;
 }
 
 header p {
@@ -83,6 +72,16 @@ header p {
 .container img {
     width: 80%;
     margin: 0 auto;
+    cursor: pointer;
+    transition: 1s ease-in-out;
+}
+
+.zoom-in {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: unset !important;
+    height: 100vh;
 }
 
 section {
@@ -106,8 +105,7 @@ footer {
     width: 100%;
     height: 40vh;
     text-align: center;
-    background: rgb(0,0,0);
-    background: linear-gradient(0deg, rgba(0,0,0,1) 35%, rgba(84,90,90,1) 100%);
+    background: rgb(0, 0, 9);;
 }
 
 @media (max-width: 600px) {

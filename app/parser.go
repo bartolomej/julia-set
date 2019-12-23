@@ -8,8 +8,10 @@ import (
 )
 
 type VideoParams struct {
-	Start AbstractParams
-	End   AbstractParams
+	Fps      int
+	Duration float64
+	Start    AbstractParams
+	End      AbstractParams
 }
 
 type AbstractParams struct {
@@ -20,15 +22,17 @@ type AbstractParams struct {
 }
 
 type RenderParams struct {
-	Resolution float32
-	RenderMode string
-	Encoding   string
-	Filename   string
-	Image      AbstractParams
-	Video      VideoParams
+	Resolution    float32
+	RenderMode    string
+	Encoding      string
+	Filename      string
+	MaxIterations int
+	MaxThreshold  int
+	Image         AbstractParams
+	Video         VideoParams
 }
 
-func ParseFileParams(id string) RenderParams {
+func ParseFileParams(id string, outputFile string) RenderParams {
 	str, err := ReadFile("renders.json")
 	if err != nil {
 		panic("Error opening renders.json config file")
@@ -49,29 +53,52 @@ func ParseFileParams(id string) RenderParams {
 		if renderMode == nil {
 			panic("Property 'renderMode' not defined")
 		}
+		maxIterations := obj["maxIterations"]
+		if maxIterations == nil {
+			maxIterations = 20.0
+		}
+		maxThreshold := obj["maxThreshold"]
+		if maxThreshold == nil {
+			maxThreshold = 20.0
+		}
 		encoding := obj["encoding"]
 		if encoding == nil {
 			panic("Property 'encoding' not defined")
 		}
 		filename := obj["filename"]
 		if filename == nil {
-			filename = fmt.Sprintf("out_%s", currId)
+			filename = fmt.Sprintf("out/out_%s", currId)
+		} else {
+			filename = fmt.Sprintf("out/%s", filename)
+		}
+		if outputFile != "" {
+			filename = fmt.Sprintf("out/%s", outputFile)
 		}
 		renderParams := RenderParams{
-			Resolution: float32(resolution.(float64)),
-			RenderMode: renderMode.(string),
-			Encoding:   encoding.(string),
-			Filename:   filename.(string),
+			Resolution:    float32(resolution.(float64)),
+			RenderMode:    renderMode.(string),
+			Encoding:      encoding.(string),
+			Filename:      filename.(string),
+			MaxIterations: int(maxIterations.(float64)),
+			MaxThreshold:  int(maxThreshold.(float64)),
 		}
 		start := obj["start"]
 		end := obj["end"]
-		if start != nil && end != nil {
-			renderParams.Video.Start = parseAbstractParams(parseJsonObj(start))
-			renderParams.Video.End = parseAbstractParams(parseJsonObj(end))
+		fps := obj["fps"]
+		duration := obj["duration"]
+		if start != nil && end != nil && fps != nil && duration != nil {
+			renderParams.Video = VideoParams{
+				Fps:      int(fps.(float64)),
+				Duration: duration.(float64),
+				Start:    parseAbstractParams(parseJsonObj(start)),
+				End:      parseAbstractParams(parseJsonObj(end)),
+			}
+			renderParams.Filename += encodeComplex(renderParams.Video.Start.C)
 		} else if val, ok := obj["static"]; ok {
 			renderParams.Image = parseAbstractParams(parseJsonObj(val))
+			renderParams.Filename += encodeComplex(renderParams.Image.C)
 		} else {
-			panic("No keys matching 'start', 'end' or 'static' params")
+			panic("Invalid configuration for video/image settings")
 		}
 		if currId == id {
 			return renderParams
@@ -124,4 +151,36 @@ func parseJsonObj(jsonObj interface{}) map[string]interface{} {
 		obj[k] = v.MapIndex(key).Interface()
 	}
 	return obj
+}
+
+func encodeComplex(c complex64) string {
+	re := real(c)
+	im := imag(c)
+	return fmt.Sprintf("_%f_%f", re, im)
+}
+
+func PrintParams(params RenderParams) {
+	fmt.Printf("Resolution: %f\n", params.Resolution)
+	fmt.Printf("Render mode: %s\n", params.RenderMode)
+	fmt.Printf("Encoding: %s\n", params.Encoding)
+	fmt.Printf("Filename: %s\n", params.Filename)
+	fmt.Printf("Max threshold: %d\n", params.MaxThreshold)
+	fmt.Printf("Max iterations: %d\n", params.MaxIterations)
+	if (params.Image != AbstractParams{}) {
+		printAbstractParams(params.Image)
+	} else if (params.Video != VideoParams{}) {
+		fmt.Printf("Duration %d\n", params.Video.Duration)
+		fmt.Printf("Fps: %d\n", params.Video.Fps)
+		fmt.Println("START: ")
+		printAbstractParams(params.Video.Start)
+		fmt.Println("END: ")
+		printAbstractParams(params.Video.End)
+	}
+}
+
+func printAbstractParams(params AbstractParams) {
+	fmt.Printf("C: %f\n", params.C)
+	fmt.Printf("CenterX: %f\n", params.CenterX)
+	fmt.Printf("CenterY: %f\n", params.CenterY)
+	fmt.Printf("Axis span: %f\n", params.AxisSpan)
 }

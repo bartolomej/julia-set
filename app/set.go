@@ -5,11 +5,13 @@ import (
 )
 
 type SetParams struct {
-	CenterX    float32
-	CenterY    float32
-	Resolution float32
-	AxisSpan   float32
-	C          complex64
+	CenterX       float32
+	CenterY       float32
+	Resolution    float32
+	AxisSpan      float32
+	MaxThreshold  int
+	MaxIterations int
+	C             complex64
 }
 
 type calcParams struct {
@@ -30,8 +32,8 @@ func getParams(params SetParams) calcParams {
 		minX:           params.CenterX - params.AxisSpan,
 		maxX:           params.CenterX + params.AxisSpan,
 		step:           params.AxisSpan / (params.Resolution * 2),
-		maxIterations:  30,
-		thresholdValue: 40,
+		maxIterations:  params.MaxIterations,
+		thresholdValue: params.MaxThreshold,
 		c:              params.C,
 	}
 }
@@ -65,13 +67,8 @@ func CalcByThreshold(set SetParams) [][]float64 {
 		for x = params.minX; x <= params.maxX; x += params.step {
 			z := complex128(complex(x, y))
 			i := 0
-			//var r float64
 			for cmplx.Abs(z) < float64(params.thresholdValue) && i < params.maxIterations {
 				z = cmplx.Pow(z, 2) + complex128(params.c)
-				// TODO: implement smooth iteration coloring
-				// https://en.wikibooks.org/wiki/Fractals/Iterations_in_the_complex_plane/Julia_set
-				//r = float64(i) - math.Log2(math.Log2(cmplx.Abs(z)))
-				// https://iquilezles.org/www/articles/mset_smooth/mset_smooth.htm
 				i++
 			}
 			resX = append(resX, float64(i))

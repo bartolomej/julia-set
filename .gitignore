@@ -3,3 +3,4 @@ go.sum
 renders.json
 /out
 /out/*
+todo.go

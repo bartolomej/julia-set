@@ -90,15 +90,6 @@
     </div>
 </section>
 
-<section style="background-color: #00001b;">
-    <div class="container">
-        <div>
-            <img alt="set" src="examples/-0.65_0.04.png">
-            <p>\(C = -0.65 + 0.04i\)</p>
-        </div>
-    </div>
-</section>
-
 <footer>
     <p>
         All those images are rendered with <a target="_blank" href="https://gihub.com/bartolomej/complex-set-art">this</a> software that I build using Go .
@@ -108,6 +99,21 @@
     </p>
 </footer>
 
+<script>
+    let zoomedIn = false;
+    let images = document.getElementsByTagName('img');
+    for (let img of images) {
+        img.addEventListener('click', imgClickHandler)
+    }
+    function imgClickHandler(e) {
+        if (zoomedIn) {
+            e.target.classList.remove("zoom-in")
+        } else {
+            e.target.className += "zoom-in";
+        }
+        zoomedIn = !zoomedIn;
+    }
+</script>
 <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </body>

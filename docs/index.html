@@ -12,39 +12,74 @@
     <title>Complex set art</title>
 </head>
 <body>
-<div id="container">
-    <header>
-        <h1>Complex Set Art</h1>
-        <p>
-            <a href="https://en.wikipedia.org/wiki/Julia_set">Julia set</a> is a set of complex numbers that is studied in the field of <a href="https://en.wikipedia.org/wiki/Complex_dynamics">complex dynamics</a>.
-            It is defined by a function \(f(z) = Z^2 + C\) of complex domain, where \(C\) is also a point of a complex domain (hyper parameter).
-            We can compute the set by testing if point \(Z\) "<i>converges</i>" towards 0 or "<i>diverges</i>" towards infinity after \(n\) iterations for every pixel of the plane.
-        </p>
-    </header>
 
-    <section>
+<header>
+    <h1>Complex Set Art</h1>
+    <p>
+        <a href="https://en.wikipedia.org/wiki/Julia_set">Julia set</a> is a set of complex numbers that is studied in
+        the field of <a href="https://en.wikipedia.org/wiki/Complex_dynamics">complex dynamics</a>.
+    </p>
+    <p>
+        It is defined by a function \(f(z) = Z^2 + C\) of complex domain, where \(Z\) is current point in the plane and
+        \(C\) is a hyper parameter that changes the behaviour of the system.
+    </p>
+    <p>
+        We compute the set by testing if point points "<i>converge</i>" towards 0 or "<i>diverge</i>" towards
+        infinity after \(n\) iterations for every point \(Z\) in the plane. Points that always converge are part of the
+        Julia set.
+    </p>
+</header>
+
+<section>
+    <div class="container">
         <div>
             <img alt="set" src="examples/0.00.0i.png">
-            <p>Julia set when \(C = 0.0 + 0.0i\)</p>
+            <p>\(C = 0.0 + 0.0i\)</p>
         </div>
         <div>
             <img alt="set" src="examples/-0.610.0i.png">
-            <p>Julia set when \(C = -0.61 + 0.0i\)</p>
+            <p>\(C = -0.61 + 0.0i\)</p>
         </div>
         <div>
             <img alt="set" src="examples/0.330.0i.png">
-            <p>Julia set when \(C = 0.33 + 0.0i\)</p>
+            <p>\(C = 0.33 + 0.0i\)</p>
         </div>
         <div>
             <img alt="set" src="examples/0.330.5i.png">
-            <p>Julia set when \(C = 0.33 + 0.5i\)</p>
+            <p>\(C = 0.33 + 0.5i\)</p>
         </div>
-    </section>
+    </div>
+</section>
 
-    <footer>
-        <p>Check out other web based julia set visualization <a href="https://bartolomej.github.io/julia-set/">here</a>.</p>
-    </footer>
-</div>
+<section id="mid-section">
+    <h4>And with a little different coloring approach...</h4>
+</section>
+
+<section style="background-color: #545a5a;">
+    <div class="container">
+        <div>
+            <img alt="set" src="examples/-0.60.6t.png">
+            <p>\(C = -0.6 + 0.6i\)</p>
+        </div>
+        <div>
+            <img alt="set" src="examples/-0.43-0.2t.png">
+            <p>\(C = -0.43 - 0.2i\)</p>
+        </div>
+        <div>
+            <img alt="set" src="examples/-1.20.0.png">
+            <p>\(C = -1.20 + 0.0i\)</p>
+        </div>
+    </div>
+</section>
+
+<footer>
+    <p>
+        All those images are rendered with <a target="_blank" href="https://gihub.com/bartolomej/complex-set-art">this</a> software that I build using Go .
+    </p>
+    <p>
+        Check out my other (web based) julia set visualization <a target="_blank" href="https://bartolomej.github.io/julia-set/">here</a>.
+    </p>
+</footer>
 
 <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>

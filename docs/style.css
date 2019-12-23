@@ -10,7 +10,8 @@ body {
 }
 
 h1 {
-    color: #bf3c3b;
+    color: white;
+    text-shadow: 3px 3px #bf3c3b;
     font-weight: 700;
     text-align: center;
     font-size: 50px;
@@ -43,6 +44,18 @@ header {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    background: rgb(0,0,0);
+    background: linear-gradient(0deg, rgba(0,0,0,1) 35%, rgba(191,60,59,0.6124824929971988) 100%);
+}
+
+#mid-section {
+    height: 40vh;
+    background: rgb(0,0,0);
+    background: linear-gradient(180deg, rgba(0,0,0,1) 35%, rgba(84,90,90,1) 100%);
+}
+
+#mid-section h4 {
+    color: white;
 }
 
 header p {
@@ -58,7 +71,7 @@ header p {
     }
 }
 
-#container {
+.container {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -67,7 +80,7 @@ header p {
     margin: 0 auto;
 }
 
-#container img {
+.container img {
     width: 80%;
     margin: 0 auto;
 }
@@ -87,10 +100,14 @@ section div {
 }
 
 footer {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     width: 100%;
+    height: 40vh;
     text-align: center;
-    margin-top: 50px;
-    margin-bottom: 20px;
+    background: rgb(0,0,0);
+    background: linear-gradient(0deg, rgba(0,0,0,1) 35%, rgba(84,90,90,1) 100%);
 }
 
 @media (max-width: 600px) {

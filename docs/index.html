@@ -26,9 +26,8 @@
         \(C\) is a hyper parameter that changes the behaviour of the system.
     </p>
     <p>
-        We compute the set by testing if point points "<i>converge</i>" towards 0 or "<i>diverge</i>" towards
-        infinity after \(n\) iterations for every point \(Z\) in the plane. Points that always converge are part of the
-        Julia set.
+        We compute the set by testing for every point on a plane if that point \(Z\) "<i>converges</i>" towards some other point (in other words it remains "bounded") or "<i>diverges</i>" towards
+        infinity after \(n\) iterations. Points that remain bounded are part of the Julia set.
     </p>
 </header>
 
@@ -92,7 +91,7 @@
 
 <footer>
     <p>
-        All those images are rendered with <a target="_blank" href="https://gihub.com/bartolomej/complex-set-art">this</a> software that I build using Go .
+        All those images are rendered with <a target="_blank" href="https://github.com/bartolomej/complex-set-art">this</a> software that I build using Go programming language.
     </p>
     <p>
         Check out my other (web based) julia set visualization <a target="_blank" href="https://bartolomej.github.io/julia-set/">here</a>.
@@ -108,8 +107,20 @@
     function imgClickHandler(e) {
         if (zoomedIn) {
             e.target.classList.remove("zoom-in")
+			let bcg = document.getElementById("bcg");
+			document.getElementsByTagName("body")[0].removeChild(bcg);
         } else {
             e.target.className += "zoom-in";
+			let bcg = document.createElement("div");
+			bcg.id = "bcg";
+			bcg.style.position = "fixed";
+			bcg.style.top = "0";
+			bcg.style.bottom = "0";
+			bcg.style.right = "0";
+			bcg.style.left = "0";
+			bcg.style.backgroundColor = "black";
+			bcg.style.zIndex = "1";
+			document.getElementsByTagName("body")[0].appendChild(bcg);
         }
         zoomedIn = !zoomedIn;
     }

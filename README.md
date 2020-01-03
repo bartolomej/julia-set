@@ -2,8 +2,10 @@
 
 Generate artistic Julia set images and save them to image format.
 
-![](https://i.ibb.co/cbwxH60/out1.png)
-![](docs/examples/-0.43-0.2t.png)
+| | | |
+|:-------------------------:|:-------------------------:|:-------------------------:|
+|<img width="1604" alt="C = 0 + 0i" src="docs/examples/0.00.0i.png">  C = 0 + 0i |  <img width="1604" alt="C = -0.43 - 0.2i" src="docs/examples/-0.43-0.2t.png"> C = -0.43 - 0.2i|
+|<img width="1604" alt="C = 0.61 + 0.52i" src="docs/examples/grey_0.61_0.52.png">  C = 0.61 + 0.52i |  <img width="1604" alt="C = -0.81 + 0.0i" src="docs/examples/gold_-0.81_0.0.png"> C = -0.81 + 0.0i|
 
 ## Usage
 

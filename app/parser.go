@@ -227,16 +227,15 @@ func encodeComplex(c complex64) string {
 }
 
 func PrintParams(params RenderParams) {
+	fmt.Println()
+	fmt.Println("PARAMETERS: ")
 	fmt.Printf("Resolution: %f\n", params.Resolution)
 	fmt.Printf("Render mode: %s\n", params.RenderMode)
 	fmt.Printf("Encoding: %s\n", params.Encoding)
 	fmt.Printf("Filename: %s\n", params.Filename)
 	fmt.Printf("Max threshold: %d\n", params.MaxThreshold)
 	fmt.Printf("Max iterations: %d\n", params.MaxIterations)
-	fmt.Printf("Color space: %s\n", params.Color.ColorSpace)
-	fmt.Printf("First color param: %s\n", params.Color.C1)
-	fmt.Printf("Second color param: %s\n", params.Color.C2)
-	fmt.Printf("Third color param: %s\n", params.Color.C3)
+	fmt.Printf("Color: %s\n", encodeColorForPrint(params.Color))
 	if (params.Image != AbstractParams{}) {
 		printAbstractParams(params.Image)
 	} else if (params.Video != VideoParams{}) {
@@ -247,6 +246,11 @@ func PrintParams(params RenderParams) {
 		fmt.Println("END: ")
 		printAbstractParams(params.Video.End)
 	}
+	fmt.Println()
+}
+
+func encodeColorForPrint(color ColorParams) string {
+	return fmt.Sprintf("%s(%s, %s, %s)", color.ColorSpace, color.C1, color.C2, color.C3)
 }
 
 func printAbstractParams(params AbstractParams) {

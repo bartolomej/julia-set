@@ -44,11 +44,14 @@ func renderImgByThreshold(array [][]float64, params RenderParams) *image.NRGBA64
 	}
 	stepY := len(array) / size
 	stepX := len(array[0]) / size
+	fmt.Println("RENDERING: ")
 	for y := 0; y < size; y++ {
 		for x := 0; x < size; x++ {
 			c := array[y*stepY][x*stepX]
 			im.Set(x, y, evalColor(c, params.Color))
 		}
+		progress := (100 * y) / size
+		fmt.Printf("\r %d %", progress)
 	}
 	return im
 }
@@ -61,11 +64,14 @@ func renderImgByIteration(array [][]complex128, params RenderParams) *image.NRGB
 	}
 	stepY := len(array) / size
 	stepX := len(array[0]) / size
+	fmt.Println("RENDERING: ")
 	for y := 0; y < size; y++ {
 		for x := 0; x < size; x++ {
 			c := math.Pow(math.E, -cmplx.Abs(array[y*stepY][x*stepX]))
 			im.Set(x, y, evalColor(c, params.Color))
 		}
+		progress := (100 * y) / size
+		fmt.Printf("\r %d %", progress)
 	}
 	return im
 }

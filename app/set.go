@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"math/cmplx"
 )
 
@@ -43,6 +44,8 @@ func CalcByIterations(set SetParams) [][]complex128 {
 	var y float32 = 0
 	var x float32 = 0
 	var results [][]complex128
+	fmt.Println("COMPUTING: ")
+	total := (params.maxY - params.minY) / params.step
 	for y = params.maxY; y >= params.minY; y -= params.step {
 		var resX []complex128
 		for x = params.minX; x <= params.maxX; x += params.step {
@@ -53,6 +56,10 @@ func CalcByIterations(set SetParams) [][]complex128 {
 			resX = append(resX, z)
 		}
 		results = append(results, resX)
+		// compute progress
+		current := (y - params.minY) / params.step
+		progress := int(float64(100 - (100*current)/total))
+		fmt.Printf("\r%d %", progress)
 	}
 	return results
 }
@@ -62,6 +69,8 @@ func CalcByThreshold(set SetParams) [][]float64 {
 	var y float32 = 0
 	var x float32 = 0
 	var results [][]float64
+	fmt.Println("COMPUTING: ")
+	total := (params.maxY - params.minY) / params.step
 	for y = params.maxY; y >= params.minY; y -= params.step {
 		var resX []float64
 		for x = params.minX; x <= params.maxX; x += params.step {
@@ -74,6 +83,10 @@ func CalcByThreshold(set SetParams) [][]float64 {
 			resX = append(resX, float64(i))
 		}
 		results = append(results, resX)
+		// compute progress
+		current := (y - params.minY) / params.step
+		progress := int(float64(100 - (100*current)/total))
+		fmt.Printf("\r%d %", progress)
 	}
 	return results
 }

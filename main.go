@@ -30,7 +30,7 @@ func main() {
 	} else if (params.Image != app.AbstractParams{}) {
 		app.RenderImage(params)
 	}
-	fmt.Println("DONE !")
+	fmt.Println(" --> DONE !")
 }
 
 func getDefaultImageParams() app.RenderParams {

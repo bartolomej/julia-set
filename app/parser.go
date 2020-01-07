@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 )
 
 type VideoParams struct {
@@ -21,6 +22,20 @@ type AbstractParams struct {
 	AxisSpan float32
 }
 
+type ColorParam struct {
+	// TODO: add function param support (nesting)
+	// Function string
+	ParamValues     []string
+	ParamOperations []string
+}
+
+type ColorParams struct {
+	ColorSpace string
+	C1         ColorParam
+	C2         ColorParam
+	C3         ColorParam
+}
+
 type RenderParams struct {
 	Resolution    float32
 	RenderMode    string
@@ -28,6 +43,7 @@ type RenderParams struct {
 	Filename      string
 	MaxIterations int
 	MaxThreshold  int
+	Color         ColorParams
 	Image         AbstractParams
 	Video         VideoParams
 }
@@ -56,14 +72,49 @@ func ParseFileParams(id string, outputFile string) RenderParams {
 		maxIterations := obj["maxIterations"]
 		if maxIterations == nil {
 			maxIterations = 20.0
+			fmt.Println("maxThreshold not defined (default 20)")
 		}
 		maxThreshold := obj["maxThreshold"]
 		if maxThreshold == nil {
 			maxThreshold = 20.0
+			fmt.Println("maxThreshold not defined (default 20)")
 		}
 		encoding := obj["encoding"]
 		if encoding == nil {
 			panic("Property 'encoding' not defined")
+		}
+		color := obj["color"]
+		var colorSpace string
+		var C1 string
+		var C2 string
+		var C3 string
+		if color == nil {
+			fmt.Println("color not defined")
+		} else {
+			c := strings.ReplaceAll(color.(string), " ", "")
+			colorSpace = c[0:3]
+			if colorSpace != "HSV" && colorSpace != "RGB" {
+				panic(fmt.Sprintf("Invalid color space %s", colorSpace))
+			}
+			c = strings.Replace(c, colorSpace, "", 1)
+			c = strings.Replace(c, "(", "", 1)
+			c = strings.Replace(c, ")", "", 1)
+			params := strings.Split(c, ",")
+			if len(params) < 3 {
+				panic(fmt.Sprintf("Invalid color params %s", params))
+			}
+			C1 = params[0]
+			C2 = params[1]
+			C3 = params[2]
+			if !strings.Contains(C1, "c") {
+				panic(fmt.Sprintf("First color param is invalid: %s", C1))
+			}
+			if !strings.Contains(C2, "c") {
+				panic(fmt.Sprintf("Second color param is invalid: %s", C2))
+			}
+			if !strings.Contains(C3, "c") {
+				panic(fmt.Sprintf("Third color param is invalid: %s", C3))
+			}
 		}
 		filename := obj["filename"]
 		if filename == nil {
@@ -81,6 +132,14 @@ func ParseFileParams(id string, outputFile string) RenderParams {
 			Filename:      filename.(string),
 			MaxIterations: int(maxIterations.(float64)),
 			MaxThreshold:  int(maxThreshold.(float64)),
+		}
+		if color != nil {
+			renderParams.Color = ColorParams{
+				ColorSpace: colorSpace,
+				C1:         parseColorParam(C1),
+				C2:         parseColorParam(C2),
+				C3:         parseColorParam(C3),
+			}
 		}
 		start := obj["start"]
 		end := obj["end"]
@@ -127,6 +186,24 @@ func ParseCliParams() RenderParams {
 	}
 }
 
+func parseColorParam(c string) ColorParam {
+	values := strings.FieldsFunc(c, SplitColorParam)
+	var operations []string
+	for _, s := range strings.Split(c, "") {
+		if SplitColorParam([]rune(s)[0]) {
+			operations = append(operations, s)
+		}
+	}
+	return ColorParam{
+		ParamValues:     values,
+		ParamOperations: operations,
+	}
+}
+
+func SplitColorParam(r rune) bool {
+	return r == '*' || r == '/' || r == '+' || r == '-'
+}
+
 func parseAbstractParams(obj map[string]interface{}) AbstractParams {
 	centerX := obj["centerX"].(float64)
 	centerY := obj["centerY"].(float64)
@@ -166,6 +243,10 @@ func PrintParams(params RenderParams) {
 	fmt.Printf("Filename: %s\n", params.Filename)
 	fmt.Printf("Max threshold: %d\n", params.MaxThreshold)
 	fmt.Printf("Max iterations: %d\n", params.MaxIterations)
+	fmt.Printf("Color space: %s\n", params.Color.ColorSpace)
+	fmt.Printf("First color param: %s\n", params.Color.C1)
+	fmt.Printf("Second color param: %s\n", params.Color.C2)
+	fmt.Printf("Third color param: %s\n", params.Color.C3)
 	if (params.Image != AbstractParams{}) {
 		printAbstractParams(params.Image)
 	} else if (params.Video != VideoParams{}) {

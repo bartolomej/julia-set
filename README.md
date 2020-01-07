@@ -69,8 +69,12 @@ Example configuration for generating static renders:
 Run above configuration with the following commands:
 ```bash
 // pass config id as first param
-go run *.go 1
+go run *.go zoomed-in
 
 // you can also override output filename by passing it as a second arg
-go run *.go 1 out-test
+go run *.go zoomed-in out-test
 ```
+
+## TODO
+- render time estimation and progress
+- video rendering support (combine multiple images)

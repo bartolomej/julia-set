@@ -13,26 +13,34 @@ import (
 	"strings"
 )
 
-func RenderImage(renderParams RenderParams) {
-	setParams := SetParams{
-		CenterX:       renderParams.Image.CenterX,
-		CenterY:       renderParams.Image.CenterY,
-		Resolution:    renderParams.Resolution,
-		AxisSpan:      renderParams.Image.AxisSpan,
-		C:             renderParams.Image.C,
-		MaxThreshold:  renderParams.MaxThreshold,
-		MaxIterations: renderParams.MaxIterations,
+func Render(params RenderParams) {
+	if (params.Video != VideoParams{}) {
+		panic("Video rendering not implemented yet")
+	} else if (params.Image != AbstractParams{}) {
+		renderImage(params)
 	}
-	if renderParams.RenderMode == "ITERATION" {
+}
+
+func renderImage(params RenderParams) {
+	setParams := SetParams{
+		CenterX:       params.Image.CenterX,
+		CenterY:       params.Image.CenterY,
+		Resolution:    params.Resolution,
+		AxisSpan:      params.Image.AxisSpan,
+		C:             params.Image.C,
+		MaxThreshold:  params.MaxThreshold,
+		MaxIterations: params.MaxIterations,
+	}
+	if params.RenderMode == "ITERATION" {
 		set := CalcByIterations(setParams)
-		img := renderImgByIteration(set, renderParams)
-		_ = saveImage(renderParams.Filename, img, renderParams.Encoding, renderParams.Id)
-	} else if renderParams.RenderMode == "THRESHOLD" {
+		img := renderImgByIteration(set, params)
+		_ = saveImage(params.Filename, img, params.Encoding, params.Id)
+	} else if params.RenderMode == "THRESHOLD" {
 		set := CalcByThreshold(setParams)
-		img := renderImgByThreshold(set, renderParams)
-		_ = saveImage(renderParams.Filename, img, renderParams.Encoding, renderParams.Id)
+		img := renderImgByThreshold(set, params)
+		_ = saveImage(params.Filename, img, params.Encoding, params.Id)
 	} else {
-		panic(fmt.Sprintf("Invalid RenderMode %s", renderParams.RenderMode))
+		panic(fmt.Sprintf("Invalid RenderMode %s", params.RenderMode))
 	}
 }
 
@@ -87,14 +95,15 @@ func evalColor(c float64, params ColorParams) colorful.Color {
 	parameters := make(map[string]interface{}, 8)
 	parameters["c"] = c
 
-	var C1 *govaluate.EvaluableExpression
-	var C2 *govaluate.EvaluableExpression
-	var C3 *govaluate.EvaluableExpression
 	functions := map[string]govaluate.ExpressionFunction{
 		"tanh": func(args ...interface{}) (interface{}, error) {
 			return math.Tanh(args[0].(float64)), nil
 		},
 	}
+
+	var C1 *govaluate.EvaluableExpression
+	var C2 *govaluate.EvaluableExpression
+	var C3 *govaluate.EvaluableExpression
 
 	exp1, err1 := govaluate.NewEvaluableExpressionWithFunctions(params.C1, functions)
 	if err1 != nil {

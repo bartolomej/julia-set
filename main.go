@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/bartolomej/complex-set-art/app"
 	"os"
+	"strconv"
 )
 
 func main() {
@@ -19,18 +20,32 @@ func main() {
 	} else if len(os.Args) == 3 {
 		params = app.ParseFileParams(os.Args[1], os.Args[2])
 	} else if len(os.Args) > 4 {
-		params = app.ParseCliParams()
+		params = parseCliParams()
 	} else {
-		params = app.ParseFileParams("zoomed-in", "")
+		params = app.ParseFileParams("video-test", "")
 	}
-	// print currently used params
-	app.PrintParams(params)
-	if (params.Video != app.VideoParams{}) {
-		panic("Video rendering not implemented yet")
-	} else if (params.Image != app.AbstractParams{}) {
-		app.RenderImage(params)
+	app.Render(params)
+	fmt.Println("\n --> DONE !")
+}
+
+func parseCliParams() app.RenderParams {
+	res := paramToFloat(os.Args[1])
+	c := complex(paramToFloat(os.Args[2]), paramToFloat(os.Args[3]))
+	filename := fmt.Sprintf("r%fi%f_%s", real(c), imag(c), os.Args[4])
+	// use static config for cli args
+	image := app.AbstractParams{
+		C:        c,
+		CenterX:  0,
+		CenterY:  0,
+		AxisSpan: 2,
 	}
-	fmt.Println(" --> DONE !")
+	return app.RenderParams{
+		Resolution: res,
+		RenderMode: os.Args[4],
+		Encoding:   "png",
+		Filename:   filename,
+		Image:      image,
+	}
 }
 
 func getDefaultImageParams() app.RenderParams {
@@ -49,4 +64,12 @@ func getDefaultImageParams() app.RenderParams {
 			AxisSpan: 2,
 		},
 	}
+}
+
+func paramToFloat(input string) float32 {
+	n, err := strconv.ParseFloat(input, 32)
+	if err != nil {
+		panic(fmt.Sprintf("Parameter %s is not a number", input))
+	}
+	return float32(n)
 }

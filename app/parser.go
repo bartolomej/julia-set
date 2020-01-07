@@ -2,9 +2,9 @@ package app
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
-	"reflect"
 	"strings"
 )
 
@@ -42,137 +42,164 @@ type RenderParams struct {
 	Video         VideoParams
 }
 
-func ParseFileParams(id string, outputFile string) RenderParams {
-	str, err := ReadFile("renders.json")
+func ParseFileParams(configId string, outputFile string) RenderParams {
+	rawJsonConfig, err := ReadFile("renders.json")
 	if err != nil {
 		panic("Error opening renders.json config file")
 	}
-	var res []interface{}
-	_ = json.Unmarshal([]byte(str), &res)
-	for i := 0; i < len(res); i++ {
-		obj := parseJsonObj(res[i])
-		currId := obj["id"]
-		if currId == nil {
-			panic("Property 'id' not defined")
+
+	var jsonConfig []interface{}
+	_ = json.Unmarshal([]byte(rawJsonConfig), &jsonConfig)
+	for i := 0; i < len(jsonConfig); i++ {
+		config := ParseJsonObject(jsonConfig[i])
+		var configErrors []error
+
+		id, idErr := getConfigProp(config, "id")
+		resolution, resolutionErr := getConfigProp(config, "resolution")
+		filename, _ := getConfigProp(config, "filename")
+		renderMode, renderModeErr := getConfigProp(config, "renderMode")
+		maxIterations, _ := getConfigProp(config, "maxIterations")
+		maxThreshold, _ := getConfigProp(config, "maxThreshold")
+		encoding, encodingErr := getConfigProp(config, "encoding")
+		color, _ := getConfigProp(config, "color")
+		colorParams, colorParamsErr := parseColorParams(color)
+
+		// if id doesn't match skip parsing and try next config
+		if id != configId {
+			continue
 		}
-		resolution := obj["resolution"]
-		if resolution == nil {
-			panic("Property 'resolution' not defined")
+
+		if idErr != nil {
+			configErrors = append(configErrors, idErr)
 		}
-		renderMode := obj["renderMode"]
-		if renderMode == nil {
-			panic("Property 'renderMode' not defined")
+		if renderModeErr != nil {
+			configErrors = append(configErrors, renderModeErr)
+		}
+		if encodingErr != nil {
+			configErrors = append(configErrors, encodingErr)
+		}
+		if resolutionErr != nil {
+			configErrors = append(configErrors, resolutionErr)
+		}
+		if colorParamsErr != nil {
+			configErrors = append(configErrors, colorParamsErr)
+		}
+
+		if filename == nil {
+			filename = id
+		}
+		if outputFile != "" {
+			filename = outputFile
+		}
+		if maxIterations == nil {
+			maxIterations = 20.0
+		}
+		if maxThreshold == nil {
+			maxThreshold = 20.0
 		}
 		if renderMode == "-t" || renderMode == "T" {
 			renderMode = "THRESHOLD"
 		} else if renderMode == "-i" || renderMode == "I" {
 			renderMode = "ITERATION"
 		}
-		maxIterations := obj["maxIterations"]
-		if maxIterations == nil {
-			maxIterations = 20.0
-			fmt.Println("maxThreshold not defined (default 20)")
-		}
-		maxThreshold := obj["maxThreshold"]
-		if maxThreshold == nil {
-			maxThreshold = 20.0
-			fmt.Println("maxThreshold not defined (default 20)")
-		}
-		encoding := obj["encoding"]
-		if encoding == nil {
-			panic("Property 'encoding' not defined")
-		}
-		color := obj["color"]
-		var colorSpace string
 
-		var C1 string
-		var C2 string
-		var C3 string
-		if color == nil {
-			fmt.Println("color not defined")
-		} else {
-			c := strings.ReplaceAll(color.(string), " ", "")
-			// replace last parenthesis with space
-			c = replaceAtIndex(c, ' ', len(c)-1)
-			// remove space at the end
-			c = strings.ReplaceAll(c, " ", "")
-			colorSpace = c[0:3]
-			c = strings.Replace(c, colorSpace, "", 1)
-			c = strings.Replace(c, "(", "", 1)
-			params := strings.Split(c, ",")
-			if len(params) < 3 {
-				panic(fmt.Sprintf("Invalid color params %s", params))
-			}
-			C1 = params[0]
-			C2 = params[1]
-			C3 = params[2]
-		}
-		filename := obj["filename"]
-		if filename == nil {
-			filename = currId
-		}
-		if outputFile != "" {
-			filename = outputFile
-		}
 		renderParams := RenderParams{
-			Id:            currId.(string),
+			Id:            id.(string),
 			Resolution:    float32(resolution.(float64)),
 			RenderMode:    renderMode.(string),
 			Encoding:      encoding.(string),
 			Filename:      filename.(string),
 			MaxIterations: int(maxIterations.(float64)),
 			MaxThreshold:  int(maxThreshold.(float64)),
+			Color:         colorParams,
 		}
-		if color != nil {
-			renderParams.Color = ColorParams{
-				ColorSpace: colorSpace,
-				C1:         C1,
-				C2:         C2,
-				C3:         C3,
-			}
-		}
-		start := obj["start"]
-		end := obj["end"]
-		fps := obj["fps"]
-		duration := obj["duration"]
-		if start != nil && end != nil && fps != nil && duration != nil {
-			renderParams.Video = VideoParams{
-				Fps:      int(fps.(float64)),
-				Duration: duration.(float64),
-				Start:    parseAbstractParams(parseJsonObj(start)),
-				End:      parseAbstractParams(parseJsonObj(end)),
-			}
-			renderParams.Filename += encodeParams(renderParams, true)
-		} else if val, ok := obj["static"]; ok {
-			renderParams.Image = parseAbstractParams(parseJsonObj(val))
+
+		static, _ := getConfigProp(config, "static")
+		if static != nil {
+			renderParams.Image = parseAbstractParams(ParseJsonObject(static))
 			renderParams.Filename += encodeParams(renderParams, false)
-		} else {
-			panic("Invalid configuration for video/image settings")
-		}
-		if currId == id {
+			handleErrors(configErrors)
+			printParams(renderParams)
 			return renderParams
 		}
+
+		start, startErr := getConfigProp(config, "start")
+		end, endErr := getConfigProp(config, "end")
+		fps, fpsErr := getConfigProp(config, "fps")
+		duration, durationErr := getConfigProp(config, "duration")
+
+		if startErr != nil {
+			configErrors = append(configErrors, startErr)
+		}
+		if endErr != nil {
+			configErrors = append(configErrors, endErr)
+		}
+		if fpsErr != nil {
+			configErrors = append(configErrors, fpsErr)
+		}
+		if durationErr != nil {
+			configErrors = append(configErrors, durationErr)
+		}
+
+		renderParams.Video = VideoParams{
+			Fps:      int(fps.(float64)),
+			Duration: duration.(float64),
+			Start:    parseAbstractParams(ParseJsonObject(start)),
+			End:      parseAbstractParams(ParseJsonObject(end)),
+		}
+
+		renderParams.Filename += encodeParams(renderParams, true)
+		handleErrors(configErrors)
+		printParams(renderParams)
+		return renderParams
 	}
-	panic(fmt.Sprintf("Config with id: %s not found", id))
+	panic(fmt.Sprintf("Config with id: %s not found", configId))
 }
 
-func ParseCliParams() RenderParams {
-	res := ParamToFloat(os.Args[1])
-	c := complex(ParamToFloat(os.Args[2]), ParamToFloat(os.Args[3]))
-	filename := fmt.Sprintf("r%fi%f_%s", real(c), imag(c), os.Args[4])
-	// use static config for cli args
-	image := AbstractParams{
-		C:        c,
-		CenterX:  0,
-		CenterY:  0,
-		AxisSpan: 2,
+func handleErrors(errors []error) {
+	if len(errors) == 0 {
+		return
 	}
-	return RenderParams{
-		Resolution: res,
-		RenderMode: os.Args[4],
-		Encoding:   "png",
-		Filename:   filename,
-		Image:      image,
+	fmt.Println("CONFIGURATION ERRORS:")
+	for i := 0; i < len(errors); i++ {
+		fmt.Println(errors[i].Error())
+	}
+	os.Exit(1)
+}
+
+func parseColorParams(color interface{}) (ColorParams, error) {
+	if color == nil {
+		return ColorParams{}, nil
+	} else {
+		c := strings.ReplaceAll(color.(string), " ", "")
+		// replace last parenthesis with space
+		c = replaceAtIndex(c, ' ', len(c)-1)
+		// remove space at the end
+		c = strings.ReplaceAll(c, " ", "")
+		colorSpace := c[0:3]
+		c = strings.Replace(c, colorSpace, "", 1)
+		c = strings.Replace(c, "(", "", 1)
+		params := strings.Split(c, ",")
+		if len(params) < 3 {
+			return ColorParams{}, errors.New(fmt.Sprintf("Invalid color params %s", params))
+		} else {
+			colorParams := ColorParams{
+				ColorSpace: colorSpace,
+				C1:         params[0],
+				C2:         params[1],
+				C3:         params[2],
+			}
+			return colorParams, nil
+		}
+	}
+}
+
+func getConfigProp(config map[string]interface{}, prop string) (interface{}, error) {
+	resolution := config[prop]
+	if resolution == nil {
+		return nil, errors.New(fmt.Sprintf("Property '%s' not defined", prop))
+	} else {
+		return resolution, nil
 	}
 }
 
@@ -183,29 +210,39 @@ func replaceAtIndex(in string, r rune, i int) string {
 }
 
 func parseAbstractParams(obj map[string]interface{}) AbstractParams {
-	centerX := obj["centerX"].(float64)
-	centerY := obj["centerY"].(float64)
-	axisSpan := obj["axisSpan"].(float64)
-	c := complex64(complex(obj["realC"].(float64), obj["imagC"].(float64)))
+	var absParamsErrors []error
+
+	centerX, centerXErr := getConfigProp(obj, "centerX")
+	centerY, centerYErr := getConfigProp(obj, "centerY")
+	axisSpan, axisSpanErr := getConfigProp(obj, "axisSpan")
+	realC, realCErr := getConfigProp(obj, "realC")
+	imagC, imagCErr := getConfigProp(obj, "imagC")
+
+	if centerXErr != nil {
+		absParamsErrors = append(absParamsErrors, centerXErr)
+	}
+	if centerYErr != nil {
+		absParamsErrors = append(absParamsErrors, centerYErr)
+	}
+	if axisSpanErr != nil {
+		absParamsErrors = append(absParamsErrors, axisSpanErr)
+	}
+	if realCErr != nil {
+		absParamsErrors = append(absParamsErrors, realCErr)
+	}
+	if imagCErr != nil {
+		absParamsErrors = append(absParamsErrors, imagCErr)
+	}
+
+	handleErrors(absParamsErrors)
+
+	c := complex64(complex(realC.(float64), imagC.(float64)))
 	return AbstractParams{
 		C:        c,
-		CenterX:  float32(centerX),
-		CenterY:  float32(centerY),
-		AxisSpan: float32(axisSpan),
+		CenterX:  float32(centerX.(float64)),
+		CenterY:  float32(centerY.(float64)),
+		AxisSpan: float32(axisSpan.(float64)),
 	}
-}
-
-func parseJsonObj(jsonObj interface{}) map[string]interface{} {
-	obj := make(map[string]interface{})
-	v := reflect.ValueOf(jsonObj)
-	if v.Kind() != reflect.Map {
-		panic("Json config not of type array")
-	}
-	for _, key := range v.MapKeys() {
-		k := key.Interface().(string)
-		obj[k] = v.MapIndex(key).Interface()
-	}
-	return obj
 }
 
 func encodeParams(params RenderParams, isVideo bool) string {
@@ -226,7 +263,7 @@ func encodeComplex(c complex64) string {
 	return fmt.Sprintf("(%f%f)", re, im)
 }
 
-func PrintParams(params RenderParams) {
+func printParams(params RenderParams) {
 	fmt.Println()
 	fmt.Println("PARAMETERS: ")
 	fmt.Printf("Resolution: %f\n", params.Resolution)
@@ -239,7 +276,7 @@ func PrintParams(params RenderParams) {
 	if (params.Image != AbstractParams{}) {
 		printAbstractParams(params.Image)
 	} else if (params.Video != VideoParams{}) {
-		fmt.Printf("Duration %d\n", params.Video.Duration)
+		fmt.Printf("Duration %f\n", params.Video.Duration)
 		fmt.Printf("Fps: %d\n", params.Video.Fps)
 		fmt.Println("START: ")
 		printAbstractParams(params.Video.Start)

@@ -1,19 +1,23 @@
 package app
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
-	"strconv"
+	"reflect"
 	"strings"
 )
 
-func ParamToFloat(input string) float32 {
-	n, err := strconv.ParseFloat(input, 32)
-	if err != nil {
-		panic(fmt.Sprintf("Parameter %s is not a number", input))
+func ParseJsonObject(jsonObj interface{}) map[string]interface{} {
+	obj := make(map[string]interface{})
+	v := reflect.ValueOf(jsonObj)
+	if v.Kind() != reflect.Map {
+		panic("Json config not of type array")
 	}
-	return float32(n)
+	for _, key := range v.MapKeys() {
+		k := key.Interface().(string)
+		obj[k] = v.MapIndex(key).Interface()
+	}
+	return obj
 }
 
 func FileExists(path string) (bool, error) {

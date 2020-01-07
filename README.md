@@ -48,13 +48,13 @@ Example configuration for generating static renders:
 [
   {
      "id": "zoomed-in",
-     "resolution": 1000, // 1000px x 1000px
-     "renderMode": "T", // THRESHOLD or ITERATION
+     "resolution": 1000,
+     "renderMode": "T",
      "encoding": "png",
      "filename": "test",
      "maxIterations": 80.0,
      "maxThreshold": 30.0,
-     "color": "RGB(c, c, c * 10)", // RGB or HSV
+     "color": "RGB(c, c, c * 10)",
      "static": {
        "centerX": -0.46,
        "centerY": 0.25,
@@ -76,5 +76,8 @@ go run *.go zoomed-in out-test
 ```
 
 ## TODO
-- render time estimation and progress
-- video rendering support (combine multiple images)
+- display video rendering progress
+- add extensive documentation
+- add configs examples
+- array of animation keyframes ?
+- simple gui app ? (https://github.com/andlabs/ui)

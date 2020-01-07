@@ -10,15 +10,77 @@ import (
 	"math"
 	"math/cmplx"
 	"os"
+	"os/exec"
+	"strconv"
 	"strings"
 )
 
 func Render(params RenderParams) {
 	if (params.Video != VideoParams{}) {
-		panic("Video rendering not implemented yet")
+		renderVideo(params)
 	} else if (params.Image != AbstractParams{}) {
+		params.Folder = "out"
 		renderImage(params)
 	}
+}
+
+func renderVideo(params RenderParams) {
+	params.Folder = "cache"
+	totalFrames := int(float64(params.Video.Fps) * params.Video.Duration)
+
+	centerX := params.Video.Start.CenterX
+	diffX := params.Video.End.CenterX - params.Video.Start.CenterX
+	stepX := diffX / float32(totalFrames)
+
+	centerY := params.Video.Start.CenterY
+	diffY := params.Video.End.CenterY - params.Video.Start.CenterY
+	stepY := diffY / float32(totalFrames)
+
+	axisSpan := params.Video.Start.AxisSpan
+	diffSpan := params.Video.End.AxisSpan - params.Video.Start.AxisSpan
+	stepSpan := diffSpan / float32(totalFrames)
+
+	C := params.Video.Start.C
+	diffC := params.Video.End.C - params.Video.Start.C
+	stepC := diffC / complex(float32(totalFrames), float32(totalFrames))
+
+	digits := strconv.Itoa(len(strconv.Itoa(totalFrames)))
+
+	for i := 0; i < totalFrames; i++ {
+		params.Filename = fmt.Sprintf("frame%0"+digits+"d", i)
+		params.Image = AbstractParams{
+			C:        C,
+			CenterX:  centerX,
+			CenterY:  centerY,
+			AxisSpan: axisSpan,
+		}
+		renderImage(params)
+		centerX += stepX
+		centerY += stepY
+		axisSpan += stepSpan
+		C += stepC
+	}
+
+	inputDir := "cache/" + params.Id + "/frame%0" + digits + "d.png"
+	outputDir := fmt.Sprintf("out/%s.mp4", params.Id)
+
+	// DOCS: https://trac.ffmpeg.org/wiki/Slideshow
+	cmd := exec.Command(
+		"ffmpeg",
+		"-framerate",
+		strconv.Itoa(params.Video.Fps),
+		"-i",
+		inputDir,
+		outputDir,
+	)
+	stdout, err := cmd.Output()
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	fmt.Println(string(stdout))
 }
 
 func renderImage(params RenderParams) {
@@ -34,11 +96,11 @@ func renderImage(params RenderParams) {
 	if params.RenderMode == "ITERATION" {
 		set := CalcByIterations(setParams)
 		img := renderImgByIteration(set, params)
-		_ = saveImage(params.Filename, img, params.Encoding, params.Id)
+		_ = saveImage(params.Folder, params.Filename, img, params.Encoding, params.Id)
 	} else if params.RenderMode == "THRESHOLD" {
 		set := CalcByThreshold(setParams)
 		img := renderImgByThreshold(set, params)
-		_ = saveImage(params.Filename, img, params.Encoding, params.Id)
+		_ = saveImage(params.Folder, params.Filename, img, params.Encoding, params.Id)
 	} else {
 		panic(fmt.Sprintf("Invalid RenderMode %s", params.RenderMode))
 	}
@@ -52,15 +114,15 @@ func renderImgByThreshold(array [][]float64, params RenderParams) *image.NRGBA64
 	}
 	stepY := len(array) / size
 	stepX := len(array[0]) / size
-	fmt.Println("RENDERING: ")
 	for y := 0; y < size; y++ {
 		for x := 0; x < size; x++ {
 			c := array[y*stepY][x*stepX]
 			im.Set(x, y, evalColor(c, params.Color))
 		}
 		progress := (100 * y) / size
-		fmt.Printf("\r %d %", progress)
+		fmt.Print("\rRENDERING IMAGE: " + strconv.Itoa(progress) + "%")
 	}
+	fmt.Println()
 	return im
 }
 
@@ -72,15 +134,15 @@ func renderImgByIteration(array [][]complex128, params RenderParams) *image.NRGB
 	}
 	stepY := len(array) / size
 	stepX := len(array[0]) / size
-	fmt.Println("RENDERING: ")
 	for y := 0; y < size; y++ {
 		for x := 0; x < size; x++ {
 			c := math.Pow(math.E, -cmplx.Abs(array[y*stepY][x*stepX]))
 			im.Set(x, y, evalColor(c, params.Color))
 		}
 		progress := (100 * y) / size
-		fmt.Printf("\r %d %", progress)
+		fmt.Print("\rRENDERING IMAGE: " + strconv.Itoa(progress) + "%")
 	}
+	fmt.Println()
 	return im
 }
 
@@ -149,11 +211,11 @@ func evalColor(c float64, params ColorParams) colorful.Color {
 	return color
 }
 
-func saveImage(filename string, im image.Image, encoding string, id string) error {
+func saveImage(folder string, filename string, im image.Image, encoding string, id string) error {
 	// make folder for current configuration
-	folder := fmt.Sprintf("out/%s", id)
-	MakeDir(folder)
-	file, err := os.Create(fmt.Sprintf("%s/%s.%s", folder, filename, encoding))
+	path := fmt.Sprintf("%s/%s", folder, id)
+	MakeDir(path)
+	file, err := os.Create(fmt.Sprintf("%s/%s.%s", path, filename, encoding))
 	if err != nil {
 		return err
 	}

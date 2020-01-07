@@ -35,6 +35,7 @@ type RenderParams struct {
 	RenderMode    string
 	Encoding      string
 	Filename      string
+	Folder        string
 	MaxIterations int
 	MaxThreshold  int
 	Color         ColorParams

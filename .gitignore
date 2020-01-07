@@ -3,4 +3,6 @@ go.sum
 renders.json
 /out
 /out/*
+/cache
+/cache/*
 todo.go

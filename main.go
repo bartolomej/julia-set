@@ -9,8 +9,11 @@ import (
 
 func main() {
 	var params app.RenderParams
-	// init output folder if doesn't exist
+
+	// init app folders
 	app.MakeDir("out")
+	app.MakeDir("cache")
+
 	if len(os.Args) == 2 && os.Args[1] == "default-image" {
 		params = getDefaultImageParams()
 	} else if len(os.Args) == 2 && os.Args[1] == "default-video" {

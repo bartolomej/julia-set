@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"math/cmplx"
+	"strconv"
 )
 
 type SetParams struct {
@@ -44,7 +45,6 @@ func CalcByIterations(set SetParams) [][]complex128 {
 	var y float32 = 0
 	var x float32 = 0
 	var results [][]complex128
-	fmt.Println("COMPUTING: ")
 	total := (params.maxY - params.minY) / params.step
 	for y = params.maxY; y >= params.minY; y -= params.step {
 		var resX []complex128
@@ -59,8 +59,9 @@ func CalcByIterations(set SetParams) [][]complex128 {
 		// compute progress
 		current := (y - params.minY) / params.step
 		progress := int(float64(100 - (100*current)/total))
-		fmt.Printf("\r%d %", progress)
+		fmt.Print("\rCOMPUTING: " + strconv.Itoa(progress) + "%")
 	}
+	fmt.Println()
 	return results
 }
 
@@ -69,7 +70,6 @@ func CalcByThreshold(set SetParams) [][]float64 {
 	var y float32 = 0
 	var x float32 = 0
 	var results [][]float64
-	fmt.Println("COMPUTING: ")
 	total := (params.maxY - params.minY) / params.step
 	for y = params.maxY; y >= params.minY; y -= params.step {
 		var resX []float64
@@ -86,7 +86,8 @@ func CalcByThreshold(set SetParams) [][]float64 {
 		// compute progress
 		current := (y - params.minY) / params.step
 		progress := int(float64(100 - (100*current)/total))
-		fmt.Printf("\r%d %", progress)
+		fmt.Print("\rCOMPUTING: " + strconv.Itoa(progress) + "%")
 	}
+	fmt.Println()
 	return results
 }

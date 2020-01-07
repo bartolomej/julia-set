@@ -35,10 +35,11 @@ func main() {
 
 func getDefaultImageParams() app.RenderParams {
 	return app.RenderParams{
-		Resolution:    1000,
+		Id:            "default",
+		Resolution:    100,
 		RenderMode:    "-t",
 		Encoding:      "png",
-		Filename:      "out/test-out",
+		Filename:      "test-out",
 		MaxThreshold:  30,
 		MaxIterations: 20,
 		Image: app.AbstractParams{

@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func ParamToFloat(input string) float32 {
@@ -45,12 +46,10 @@ func WriteFile(filename string, data string) {
 }
 
 func MakeDir(path string) {
-	exists, _ := FileExists("../out")
-	if exists {
-		return
-	}
 	err := os.Mkdir(path, os.ModePerm)
 	if err != nil {
-		panic(err)
+		if !strings.Contains(err.Error(), "file exists") {
+			panic(err)
+		}
 	}
 }

@@ -3,6 +3,7 @@ package app
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Knetic/govaluate"
 	"os"
 	"reflect"
 	"strings"
@@ -22,21 +23,15 @@ type AbstractParams struct {
 	AxisSpan float32
 }
 
-type ColorParam struct {
-	// TODO: add function param support (nesting)
-	// Function string
-	ParamValues     []string
-	ParamOperations []string
-}
-
 type ColorParams struct {
 	ColorSpace string
-	C1         ColorParam
-	C2         ColorParam
-	C3         ColorParam
+	C1         *govaluate.EvaluableExpression
+	C2         *govaluate.EvaluableExpression
+	C3         *govaluate.EvaluableExpression
 }
 
 type RenderParams struct {
+	Id            string
 	Resolution    float32
 	RenderMode    string
 	Encoding      string
@@ -69,6 +64,11 @@ func ParseFileParams(id string, outputFile string) RenderParams {
 		if renderMode == nil {
 			panic("Property 'renderMode' not defined")
 		}
+		if renderMode == "-t" || renderMode == "T" {
+			renderMode = "THRESHOLD"
+		} else if renderMode == "-i" || renderMode == "I" {
+			renderMode = "ITERATION"
+		}
 		maxIterations := obj["maxIterations"]
 		if maxIterations == nil {
 			maxIterations = 20.0
@@ -85,17 +85,15 @@ func ParseFileParams(id string, outputFile string) RenderParams {
 		}
 		color := obj["color"]
 		var colorSpace string
-		var C1 string
-		var C2 string
-		var C3 string
+		var C1 *govaluate.EvaluableExpression
+		var C2 *govaluate.EvaluableExpression
+		var C3 *govaluate.EvaluableExpression
 		if color == nil {
 			fmt.Println("color not defined")
 		} else {
+			// TODO: add function support https://github.com/Knetic/govaluate#functions
 			c := strings.ReplaceAll(color.(string), " ", "")
 			colorSpace = c[0:3]
-			if colorSpace != "HSV" && colorSpace != "RGB" {
-				panic(fmt.Sprintf("Invalid color space %s", colorSpace))
-			}
 			c = strings.Replace(c, colorSpace, "", 1)
 			c = strings.Replace(c, "(", "", 1)
 			c = strings.Replace(c, ")", "", 1)
@@ -103,29 +101,43 @@ func ParseFileParams(id string, outputFile string) RenderParams {
 			if len(params) < 3 {
 				panic(fmt.Sprintf("Invalid color params %s", params))
 			}
-			C1 = params[0]
-			C2 = params[1]
-			C3 = params[2]
-			if !strings.Contains(C1, "c") {
+			exp1, err1 := govaluate.NewEvaluableExpression(params[0])
+			if err1 != nil {
+				panic(fmt.Sprintf("First param error: %s", err1))
+			} else {
+				C1 = exp1
+			}
+			exp2, err2 := govaluate.NewEvaluableExpression(params[1])
+			if err2 != nil {
+				panic(fmt.Sprintf("First param error: %s", err2))
+			} else {
+				C2 = exp2
+			}
+			exp3, err3 := govaluate.NewEvaluableExpression(params[2])
+			if err3 != nil {
+				panic(fmt.Sprintf("First param error: %s", err3))
+			} else {
+				C3 = exp3
+			}
+			if !strings.Contains(params[0], "c") {
 				panic(fmt.Sprintf("First color param is invalid: %s", C1))
 			}
-			if !strings.Contains(C2, "c") {
+			if !strings.Contains(params[1], "c") {
 				panic(fmt.Sprintf("Second color param is invalid: %s", C2))
 			}
-			if !strings.Contains(C3, "c") {
+			if !strings.Contains(params[2], "c") {
 				panic(fmt.Sprintf("Third color param is invalid: %s", C3))
 			}
 		}
 		filename := obj["filename"]
 		if filename == nil {
-			filename = fmt.Sprintf("out/out_%s", currId)
-		} else {
-			filename = fmt.Sprintf("out/%s", filename)
+			filename = currId
 		}
 		if outputFile != "" {
-			filename = fmt.Sprintf("out/%s", outputFile)
+			filename = outputFile
 		}
 		renderParams := RenderParams{
+			Id:            currId.(string),
 			Resolution:    float32(resolution.(float64)),
 			RenderMode:    renderMode.(string),
 			Encoding:      encoding.(string),
@@ -136,9 +148,9 @@ func ParseFileParams(id string, outputFile string) RenderParams {
 		if color != nil {
 			renderParams.Color = ColorParams{
 				ColorSpace: colorSpace,
-				C1:         parseColorParam(C1),
-				C2:         parseColorParam(C2),
-				C3:         parseColorParam(C3),
+				C1:         C1,
+				C2:         C2,
+				C3:         C3,
 			}
 		}
 		start := obj["start"]
@@ -152,10 +164,10 @@ func ParseFileParams(id string, outputFile string) RenderParams {
 				Start:    parseAbstractParams(parseJsonObj(start)),
 				End:      parseAbstractParams(parseJsonObj(end)),
 			}
-			renderParams.Filename += encodeComplex(renderParams.Video.Start.C)
+			renderParams.Filename += encodeParams(renderParams, true)
 		} else if val, ok := obj["static"]; ok {
 			renderParams.Image = parseAbstractParams(parseJsonObj(val))
-			renderParams.Filename += encodeComplex(renderParams.Image.C)
+			renderParams.Filename += encodeParams(renderParams, false)
 		} else {
 			panic("Invalid configuration for video/image settings")
 		}
@@ -186,24 +198,6 @@ func ParseCliParams() RenderParams {
 	}
 }
 
-func parseColorParam(c string) ColorParam {
-	values := strings.FieldsFunc(c, SplitColorParam)
-	var operations []string
-	for _, s := range strings.Split(c, "") {
-		if SplitColorParam([]rune(s)[0]) {
-			operations = append(operations, s)
-		}
-	}
-	return ColorParam{
-		ParamValues:     values,
-		ParamOperations: operations,
-	}
-}
-
-func SplitColorParam(r rune) bool {
-	return r == '*' || r == '/' || r == '+' || r == '-'
-}
-
 func parseAbstractParams(obj map[string]interface{}) AbstractParams {
 	centerX := obj["centerX"].(float64)
 	centerY := obj["centerY"].(float64)
@@ -230,10 +224,22 @@ func parseJsonObj(jsonObj interface{}) map[string]interface{} {
 	return obj
 }
 
+func encodeParams(params RenderParams, isVideo bool) string {
+	if isVideo {
+		return fmt.Sprintf("_%s_%s_%s", params.RenderMode, encodeColor(params.Color), encodeComplex(params.Video.Start.C))
+	} else {
+		return fmt.Sprintf("_%s_%s_%s", params.RenderMode, encodeColor(params.Color), encodeComplex(params.Image.C))
+	}
+}
+
+func encodeColor(color ColorParams) string {
+	return fmt.Sprintf("(%s_%s_%s_%s)", color.ColorSpace, color.C1, color.C2, color.C3)
+}
+
 func encodeComplex(c complex64) string {
 	re := real(c)
 	im := imag(c)
-	return fmt.Sprintf("_%f_%f", re, im)
+	return fmt.Sprintf("(%f%f)", re, im)
 }
 
 func PrintParams(params RenderParams) {

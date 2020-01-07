@@ -48,17 +48,17 @@ Example configuration for generating static renders:
 [
   {
      "id": "zoomed-in",
-     "resolution": 1000,
-     "renderMode": "-t",
+     "resolution": 1000, // 1000px x 1000px
+     "renderMode": "T", // THRESHOLD or ITERATION
      "encoding": "png",
-     "filename": "zoomed_in_-.61.52",
+     "filename": "test",
      "maxIterations": 80.0,
      "maxThreshold": 30.0,
+     "color": "RGB(c, c, c * 10)", // RGB or HSV
      "static": {
        "centerX": -0.46,
        "centerY": 0.25,
        "axisSpan": 0.3,
-       "mode": "-t",
        "realC": -0.61,
        "imagC": 0.52
      }

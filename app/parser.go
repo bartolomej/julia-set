@@ -3,7 +3,6 @@ package app
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Knetic/govaluate"
 	"os"
 	"reflect"
 	"strings"
@@ -25,9 +24,9 @@ type AbstractParams struct {
 
 type ColorParams struct {
 	ColorSpace string
-	C1         *govaluate.EvaluableExpression
-	C2         *govaluate.EvaluableExpression
-	C3         *govaluate.EvaluableExpression
+	C1         string
+	C2         string
+	C3         string
 }
 
 type RenderParams struct {
@@ -85,49 +84,28 @@ func ParseFileParams(id string, outputFile string) RenderParams {
 		}
 		color := obj["color"]
 		var colorSpace string
-		var C1 *govaluate.EvaluableExpression
-		var C2 *govaluate.EvaluableExpression
-		var C3 *govaluate.EvaluableExpression
+
+		var C1 string
+		var C2 string
+		var C3 string
 		if color == nil {
 			fmt.Println("color not defined")
 		} else {
-			// TODO: add function support https://github.com/Knetic/govaluate#functions
 			c := strings.ReplaceAll(color.(string), " ", "")
+			// replace last parenthesis with space
+			c = replaceAtIndex(c, ' ', len(c)-1)
+			// remove space at the end
+			c = strings.ReplaceAll(c, " ", "")
 			colorSpace = c[0:3]
 			c = strings.Replace(c, colorSpace, "", 1)
 			c = strings.Replace(c, "(", "", 1)
-			c = strings.Replace(c, ")", "", 1)
 			params := strings.Split(c, ",")
 			if len(params) < 3 {
 				panic(fmt.Sprintf("Invalid color params %s", params))
 			}
-			exp1, err1 := govaluate.NewEvaluableExpression(params[0])
-			if err1 != nil {
-				panic(fmt.Sprintf("First param error: %s", err1))
-			} else {
-				C1 = exp1
-			}
-			exp2, err2 := govaluate.NewEvaluableExpression(params[1])
-			if err2 != nil {
-				panic(fmt.Sprintf("First param error: %s", err2))
-			} else {
-				C2 = exp2
-			}
-			exp3, err3 := govaluate.NewEvaluableExpression(params[2])
-			if err3 != nil {
-				panic(fmt.Sprintf("First param error: %s", err3))
-			} else {
-				C3 = exp3
-			}
-			if !strings.Contains(params[0], "c") {
-				panic(fmt.Sprintf("First color param is invalid: %s", C1))
-			}
-			if !strings.Contains(params[1], "c") {
-				panic(fmt.Sprintf("Second color param is invalid: %s", C2))
-			}
-			if !strings.Contains(params[2], "c") {
-				panic(fmt.Sprintf("Third color param is invalid: %s", C3))
-			}
+			C1 = params[0]
+			C2 = params[1]
+			C3 = params[2]
 		}
 		filename := obj["filename"]
 		if filename == nil {
@@ -196,6 +174,12 @@ func ParseCliParams() RenderParams {
 		Filename:   filename,
 		Image:      image,
 	}
+}
+
+func replaceAtIndex(in string, r rune, i int) string {
+	out := []rune(in)
+	out[i] = r
+	return string(out)
 }
 
 func parseAbstractParams(obj map[string]interface{}) AbstractParams {

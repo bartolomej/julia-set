@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/Knetic/govaluate"
 	"github.com/lucasb-eyer/go-colorful"
 	"image"
 	"image/jpeg"
@@ -34,11 +35,6 @@ func RenderImage(renderParams RenderParams) {
 		panic(fmt.Sprintf("Invalid RenderMode %s", renderParams.RenderMode))
 	}
 }
-
-//c := array[y*stepY][x*stepX] / 80
-//color := colorful.Hsv(c * 60 + 100, 0, c) // black and white
-//color := colorful.Hsv(c * 60 + 240, 1, math.Tanh(c * 2)) // purple
-//color := colorful.Hsv(c * 60, 1, math.Tanh(c * 2)) // yellow
 
 func renderImgByThreshold(array [][]float64, params RenderParams) *image.NRGBA64 {
 	size := int(params.Resolution)
@@ -76,7 +72,7 @@ func renderImgByIteration(array [][]complex128, params RenderParams) *image.NRGB
 
 func evalColor(c float64, params ColorParams) colorful.Color {
 	// return default color when params empty
-	if params.ColorSpace == "" || params.C1 == nil || params.C2 == nil || params.C3 == nil {
+	if params.ColorSpace == "" || params.C1 == "" || params.C2 == "" || params.C3 == "" {
 		return colorful.Hsv(c, c, c)
 	}
 
@@ -85,9 +81,37 @@ func evalColor(c float64, params ColorParams) colorful.Color {
 	parameters := make(map[string]interface{}, 8)
 	parameters["c"] = c
 
-	c1, err1 := params.C1.Evaluate(parameters)
-	c2, err2 := params.C1.Evaluate(parameters)
-	c3, err3 := params.C1.Evaluate(parameters)
+	var C1 *govaluate.EvaluableExpression
+	var C2 *govaluate.EvaluableExpression
+	var C3 *govaluate.EvaluableExpression
+	functions := map[string]govaluate.ExpressionFunction{
+		"tanh": func(args ...interface{}) (interface{}, error) {
+			return math.Tanh(args[0].(float64)), nil
+		},
+	}
+
+	exp1, err1 := govaluate.NewEvaluableExpressionWithFunctions(params.C1, functions)
+	if err1 != nil {
+		panic(fmt.Sprintf("First param error: %s", err1))
+	} else {
+		C1 = exp1
+	}
+	exp2, err2 := govaluate.NewEvaluableExpressionWithFunctions(params.C2, functions)
+	if err2 != nil {
+		panic(fmt.Sprintf("First param error: %s", err2))
+	} else {
+		C2 = exp2
+	}
+	exp3, err3 := govaluate.NewEvaluableExpressionWithFunctions(params.C2, functions)
+	if err3 != nil {
+		panic(fmt.Sprintf("First param error: %s", err3))
+	} else {
+		C3 = exp3
+	}
+
+	c1, err1 := C1.Evaluate(parameters)
+	c2, err2 := C2.Evaluate(parameters)
+	c3, err3 := C3.Evaluate(parameters)
 
 	if err1 != nil {
 		panic(fmt.Sprintf("First color param eval error: %s", err1))

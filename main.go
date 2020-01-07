@@ -21,7 +21,7 @@ func main() {
 	} else if len(os.Args) > 4 {
 		params = app.ParseCliParams()
 	} else {
-		params = getDefaultImageParams()
+		params = app.ParseFileParams("zoomed-in", "")
 	}
 	// print currently used params
 	app.PrintParams(params)
@@ -37,7 +37,7 @@ func getDefaultImageParams() app.RenderParams {
 	return app.RenderParams{
 		Id:            "default",
 		Resolution:    100,
-		RenderMode:    "-t",
+		RenderMode:    "THRESHOLD",
 		Encoding:      "png",
 		Filename:      "test-out",
 		MaxThreshold:  30,

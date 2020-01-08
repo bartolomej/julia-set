@@ -25,7 +25,7 @@ func main() {
 	} else if len(os.Args) > 4 {
 		params = parseCliParams()
 	} else {
-		params = app.ParseFileParams("video-test", "")
+		params = app.ParseFileParams("stripy-video", "")
 	}
 	app.Render(params)
 	fmt.Println("\n --> DONE !")
@@ -38,13 +38,13 @@ func parseCliParams() app.RenderParams {
 	// use static config for cli args
 	image := app.AbstractParams{
 		C:        c,
-		CenterX:  0,
-		CenterY:  0,
+		OriginX:  0,
+		OriginY:  0,
 		AxisSpan: 2,
 	}
 	return app.RenderParams{
 		Resolution: res,
-		RenderMode: os.Args[4],
+		ReturnMode: app.ParseReturnMode(os.Args[4]),
 		Encoding:   "png",
 		Filename:   filename,
 		Image:      image,
@@ -55,15 +55,15 @@ func getDefaultImageParams() app.RenderParams {
 	return app.RenderParams{
 		Id:            "default",
 		Resolution:    100,
-		RenderMode:    "THRESHOLD",
+		ReturnMode:    app.DISTANCE,
 		Encoding:      "png",
 		Filename:      "test-out",
 		MaxThreshold:  30,
 		MaxIterations: 20,
 		Image: app.AbstractParams{
 			C:        complex(0, 0),
-			CenterX:  0,
-			CenterY:  0,
+			OriginX:  0,
+			OriginY:  0,
 			AxisSpan: 2,
 		},
 	}

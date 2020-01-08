@@ -8,7 +8,6 @@ import (
 	"image/jpeg"
 	"image/png"
 	"math"
-	"math/cmplx"
 	"os"
 	"os/exec"
 	"strconv"
@@ -16,24 +15,23 @@ import (
 )
 
 func Render(params RenderParams) {
+	params.Folder = "out"
 	if (params.Video != VideoParams{}) {
 		renderVideo(params)
 	} else if (params.Image != AbstractParams{}) {
-		params.Folder = "out"
 		renderImage(params)
 	}
 }
 
 func renderVideo(params RenderParams) {
-	params.Folder = "cache"
 	totalFrames := int(float64(params.Video.Fps) * params.Video.Duration)
 
-	centerX := params.Video.Start.CenterX
-	diffX := params.Video.End.CenterX - params.Video.Start.CenterX
+	centerX := params.Video.Start.OriginX
+	diffX := params.Video.End.OriginX - params.Video.Start.OriginX
 	stepX := diffX / float32(totalFrames)
 
-	centerY := params.Video.Start.CenterY
-	diffY := params.Video.End.CenterY - params.Video.Start.CenterY
+	centerY := params.Video.Start.OriginY
+	diffY := params.Video.End.OriginY - params.Video.Start.OriginY
 	stepY := diffY / float32(totalFrames)
 
 	axisSpan := params.Video.Start.AxisSpan
@@ -44,20 +42,26 @@ func renderVideo(params RenderParams) {
 	diffC := params.Video.End.C - params.Video.Start.C
 	stepC := diffC / complex(float32(totalFrames), float32(totalFrames))
 
+	exp := params.Video.Start.Exponent
+	diffExp := params.Video.End.Exponent - params.Video.Start.Exponent
+	stepExp := diffExp / complex(float32(totalFrames), float32(totalFrames))
+
 	digits := strconv.Itoa(len(strconv.Itoa(totalFrames)))
 
 	for i := 0; i < totalFrames; i++ {
 		params.Filename = fmt.Sprintf("frame%0"+digits+"d", i)
 		params.Image = AbstractParams{
-			C:        C,
-			CenterX:  centerX,
-			CenterY:  centerY,
+			OriginX:  centerX,
+			OriginY:  centerY,
 			AxisSpan: axisSpan,
+			Exponent: exp,
+			C:        C,
 		}
 		renderImage(params)
 		centerX += stepX
 		centerY += stepY
 		axisSpan += stepSpan
+		exp += stepExp
 		C += stepC
 	}
 
@@ -65,6 +69,7 @@ func renderVideo(params RenderParams) {
 	outputDir := fmt.Sprintf("out/%s.mp4", params.Id)
 
 	// DOCS: https://trac.ffmpeg.org/wiki/Slideshow
+	// ffmpeg -framerate 30 -i frame%02d.png video.mp4
 	cmd := exec.Command(
 		"ffmpeg",
 		"-framerate",
@@ -85,65 +90,32 @@ func renderVideo(params RenderParams) {
 
 func renderImage(params RenderParams) {
 	setParams := SetParams{
-		CenterX:       params.Image.CenterX,
-		CenterY:       params.Image.CenterY,
-		Resolution:    params.Resolution,
-		AxisSpan:      params.Image.AxisSpan,
-		C:             params.Image.C,
-		MaxThreshold:  params.MaxThreshold,
-		MaxIterations: params.MaxIterations,
+		OriginX:      params.Image.OriginX,
+		OriginY:      params.Image.OriginY,
+		Resolution:   params.Resolution,
+		AxisSpan:     params.Image.AxisSpan,
+		MaxDistance:  params.MaxThreshold,
+		MaxIteration: params.MaxIterations,
+		ReturnMode:   params.ReturnMode,
+		Exponent:     params.Image.Exponent,
+		C:            params.Image.C,
 	}
-	if params.RenderMode == "ITERATION" {
-		set := CalcByIterations(setParams)
-		img := renderImgByIteration(set, params)
-		_ = saveImage(params.Folder, params.Filename, img, params.Encoding, params.Id)
-	} else if params.RenderMode == "THRESHOLD" {
-		set := CalcByThreshold(setParams)
-		img := renderImgByThreshold(set, params)
-		_ = saveImage(params.Folder, params.Filename, img, params.Encoding, params.Id)
-	} else {
-		panic(fmt.Sprintf("Invalid RenderMode %s", params.RenderMode))
-	}
-}
-
-func renderImgByThreshold(array [][]float64, params RenderParams) *image.NRGBA64 {
+	set := CalculateSet(setParams)
 	size := int(params.Resolution)
-	im := image.NewNRGBA64(image.Rect(0, 0, size, size))
-	if len(array) < size || len(array[0]) < size {
-		panic("Array smaller than drawing size")
-	}
-	stepY := len(array) / size
-	stepX := len(array[0]) / size
+	img := image.NewNRGBA64(image.Rect(0, 0, size, size))
+	stepY := len(set) / size
+	stepX := len(set[0]) / size
 	for y := 0; y < size; y++ {
 		for x := 0; x < size; x++ {
-			c := array[y*stepY][x*stepX]
-			im.Set(x, y, evalColor(c, params.Color))
+			c := set[y*stepY][x*stepX]
+			// TODO: SMOOTH ITERATION: c := math.Pow(math.E, -set[y*stepY][x*stepX])
+			img.Set(x, y, evalColor(c, params.Color))
 		}
 		progress := (100 * y) / size
 		fmt.Print("\rRENDERING IMAGE: " + strconv.Itoa(progress) + "%")
 	}
 	fmt.Println()
-	return im
-}
-
-func renderImgByIteration(array [][]complex128, params RenderParams) *image.NRGBA64 {
-	size := int(params.Resolution)
-	im := image.NewNRGBA64(image.Rect(0, 0, size, size))
-	if len(array) < size || len(array[0]) < size {
-		panic("Array smaller than drawing size")
-	}
-	stepY := len(array) / size
-	stepX := len(array[0]) / size
-	for y := 0; y < size; y++ {
-		for x := 0; x < size; x++ {
-			c := math.Pow(math.E, -cmplx.Abs(array[y*stepY][x*stepX]))
-			im.Set(x, y, evalColor(c, params.Color))
-		}
-		progress := (100 * y) / size
-		fmt.Print("\rRENDERING IMAGE: " + strconv.Itoa(progress) + "%")
-	}
-	fmt.Println()
-	return im
+	saveImage(params.Folder, params.Filename, img, params.Encoding, params.Id)
 }
 
 func evalColor(c float64, params ColorParams) colorful.Color {
@@ -160,6 +132,9 @@ func evalColor(c float64, params ColorParams) colorful.Color {
 	functions := map[string]govaluate.ExpressionFunction{
 		"tanh": func(args ...interface{}) (interface{}, error) {
 			return math.Tanh(args[0].(float64)), nil
+		},
+		"tan": func(args ...interface{}) (interface{}, error) {
+			return math.Tan(args[0].(float64)), nil
 		},
 	}
 
@@ -211,19 +186,25 @@ func evalColor(c float64, params ColorParams) colorful.Color {
 	return color
 }
 
-func saveImage(folder string, filename string, im image.Image, encoding string, id string) error {
+func saveImage(folder string, filename string, im image.Image, encoding string, id string) {
 	// make folder for current configuration
 	path := fmt.Sprintf("%s/%s", folder, id)
 	MakeDir(path)
 	file, err := os.Create(fmt.Sprintf("%s/%s.%s", path, filename, encoding))
 	if err != nil {
-		return err
+		panic(err)
 	}
 	defer file.Close()
 	if encoding == "png" {
-		return png.Encode(file, im)
+		err := png.Encode(file, im)
+		if err != nil {
+			panic(err)
+		}
 	} else if encoding == "jpeg" {
-		return jpeg.Encode(file, im, nil)
+		err := jpeg.Encode(file, im, nil)
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		panic(fmt.Sprintf("Invalid encoding: %s", encoding))
 	}

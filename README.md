@@ -80,4 +80,7 @@ go run *.go zoomed-in out-test
 - add extensive documentation
 - add configs examples
 - array of animation keyframes ?
+- rendering job queue
+- support custom set formulas (quadratic,..)
+- improve performance with multithreading
 - simple gui app ? (https://github.com/andlabs/ui)

@@ -17,8 +17,9 @@ type VideoParams struct {
 
 type AbstractParams struct {
 	C        complex64
-	CenterX  float32
-	CenterY  float32
+	Exponent complex64
+	OriginX  float32
+	OriginY  float32
 	AxisSpan float32
 }
 
@@ -32,7 +33,7 @@ type ColorParams struct {
 type RenderParams struct {
 	Id            string
 	Resolution    float32
-	RenderMode    string
+	ReturnMode    ReturnMode
 	Encoding      string
 	Filename      string
 	Folder        string
@@ -58,7 +59,7 @@ func ParseFileParams(configId string, outputFile string) RenderParams {
 		id, idErr := getConfigProp(config, "id")
 		resolution, resolutionErr := getConfigProp(config, "resolution")
 		filename, _ := getConfigProp(config, "filename")
-		renderMode, renderModeErr := getConfigProp(config, "renderMode")
+		returnMode, renderModeErr := getConfigProp(config, "returnMode")
 		maxIterations, _ := getConfigProp(config, "maxIterations")
 		maxThreshold, _ := getConfigProp(config, "maxThreshold")
 		encoding, encodingErr := getConfigProp(config, "encoding")
@@ -98,16 +99,11 @@ func ParseFileParams(configId string, outputFile string) RenderParams {
 		if maxThreshold == nil {
 			maxThreshold = 20.0
 		}
-		if renderMode == "-t" || renderMode == "T" {
-			renderMode = "THRESHOLD"
-		} else if renderMode == "-i" || renderMode == "I" {
-			renderMode = "ITERATION"
-		}
 
 		renderParams := RenderParams{
 			Id:            id.(string),
 			Resolution:    float32(resolution.(float64)),
-			RenderMode:    renderMode.(string),
+			ReturnMode:    ParseReturnMode(returnMode.(string)),
 			Encoding:      encoding.(string),
 			Filename:      filename.(string),
 			MaxIterations: int(maxIterations.(float64)),
@@ -168,6 +164,15 @@ func handleErrors(errors []error) {
 	os.Exit(1)
 }
 
+func ParseReturnMode(returnMode string) ReturnMode {
+	if returnMode == "-d" || returnMode == "D" || returnMode == "DISTANCE" {
+		return DISTANCE
+	} else if returnMode == "-i" || returnMode == "I" || returnMode == "ITERATION" {
+		return ITERATION
+	}
+	panic("Invalid return mode " + returnMode)
+}
+
 func parseColorParams(color interface{}) (ColorParams, error) {
 	if color == nil {
 		return ColorParams{}, nil
@@ -195,6 +200,53 @@ func parseColorParams(color interface{}) (ColorParams, error) {
 	}
 }
 
+func parseAbstractParams(obj map[string]interface{}) AbstractParams {
+	var absParamsErrors []error
+
+	originX, originXErr := getConfigProp(obj, "originX")
+	originY, centerYErr := getConfigProp(obj, "originY")
+	axisSpan, axisSpanErr := getConfigProp(obj, "axisSpan")
+	realC, realCErr := getConfigProp(obj, "realC")
+	imagC, imagCErr := getConfigProp(obj, "imagC")
+	realExp, realExpErr := getConfigProp(obj, "realExp")
+	imagExp, imagExpErr := getConfigProp(obj, "imagExp")
+
+	if originXErr != nil {
+		absParamsErrors = append(absParamsErrors, originXErr)
+	}
+	if centerYErr != nil {
+		absParamsErrors = append(absParamsErrors, centerYErr)
+	}
+	if axisSpanErr != nil {
+		absParamsErrors = append(absParamsErrors, axisSpanErr)
+	}
+	if realCErr != nil {
+		absParamsErrors = append(absParamsErrors, realCErr)
+	}
+	if imagCErr != nil {
+		absParamsErrors = append(absParamsErrors, imagCErr)
+	}
+	if realExpErr != nil {
+		absParamsErrors = append(absParamsErrors, realExpErr)
+	}
+	if imagExpErr != nil {
+		absParamsErrors = append(absParamsErrors, imagExpErr)
+	}
+
+	handleErrors(absParamsErrors)
+
+	c := complex64(complex(realC.(float64), imagC.(float64)))
+	exp := complex64(complex(realExp.(float64), imagExp.(float64)))
+
+	return AbstractParams{
+		OriginX:  float32(originX.(float64)),
+		OriginY:  float32(originY.(float64)),
+		AxisSpan: float32(axisSpan.(float64)),
+		Exponent: exp,
+		C:        c,
+	}
+}
+
 func getConfigProp(config map[string]interface{}, prop string) (interface{}, error) {
 	resolution := config[prop]
 	if resolution == nil {
@@ -210,52 +262,12 @@ func replaceAtIndex(in string, r rune, i int) string {
 	return string(out)
 }
 
-func parseAbstractParams(obj map[string]interface{}) AbstractParams {
-	var absParamsErrors []error
-
-	centerX, centerXErr := getConfigProp(obj, "centerX")
-	centerY, centerYErr := getConfigProp(obj, "centerY")
-	axisSpan, axisSpanErr := getConfigProp(obj, "axisSpan")
-	realC, realCErr := getConfigProp(obj, "realC")
-	imagC, imagCErr := getConfigProp(obj, "imagC")
-
-	if centerXErr != nil {
-		absParamsErrors = append(absParamsErrors, centerXErr)
-	}
-	if centerYErr != nil {
-		absParamsErrors = append(absParamsErrors, centerYErr)
-	}
-	if axisSpanErr != nil {
-		absParamsErrors = append(absParamsErrors, axisSpanErr)
-	}
-	if realCErr != nil {
-		absParamsErrors = append(absParamsErrors, realCErr)
-	}
-	if imagCErr != nil {
-		absParamsErrors = append(absParamsErrors, imagCErr)
-	}
-
-	handleErrors(absParamsErrors)
-
-	c := complex64(complex(realC.(float64), imagC.(float64)))
-	return AbstractParams{
-		C:        c,
-		CenterX:  float32(centerX.(float64)),
-		CenterY:  float32(centerY.(float64)),
-		AxisSpan: float32(axisSpan.(float64)),
-	}
-}
-
 func encodeParams(params RenderParams, isVideo bool) string {
 	if isVideo {
-		return fmt.Sprintf("_%s_%s_%s", params.RenderMode, encodeColor(params.Color), encodeComplex(params.Video.Start.C))
+		return fmt.Sprintf("_%s_%s", params.ReturnMode, encodeComplex(params.Video.Start.C))
 	} else {
-		return fmt.Sprintf("_%s_%s_%s", params.RenderMode, encodeColor(params.Color), encodeComplex(params.Image.C))
+		return fmt.Sprintf("_%s_%s", params.ReturnMode, encodeComplex(params.Image.C))
 	}
-}
-
-func encodeColor(color ColorParams) string {
-	return fmt.Sprintf("(%s_%s_%s_%s)", color.ColorSpace, color.C1, color.C2, color.C3)
 }
 
 func encodeComplex(c complex64) string {
@@ -268,7 +280,7 @@ func printParams(params RenderParams) {
 	fmt.Println()
 	fmt.Println("PARAMETERS: ")
 	fmt.Printf("Resolution: %f\n", params.Resolution)
-	fmt.Printf("Render mode: %s\n", params.RenderMode)
+	fmt.Printf("Render mode: %s\n", params.ReturnMode)
 	fmt.Printf("Encoding: %s\n", params.Encoding)
 	fmt.Printf("Filename: %s\n", params.Filename)
 	fmt.Printf("Max threshold: %d\n", params.MaxThreshold)
@@ -287,13 +299,14 @@ func printParams(params RenderParams) {
 	fmt.Println()
 }
 
-func encodeColorForPrint(color ColorParams) string {
-	return fmt.Sprintf("%s(%s, %s, %s)", color.ColorSpace, color.C1, color.C2, color.C3)
-}
-
 func printAbstractParams(params AbstractParams) {
 	fmt.Printf("C: %f\n", params.C)
-	fmt.Printf("CenterX: %f\n", params.CenterX)
-	fmt.Printf("CenterY: %f\n", params.CenterY)
+	fmt.Printf("Exponent: %f\n", params.Exponent)
+	fmt.Printf("OriginX: %f\n", params.OriginX)
+	fmt.Printf("OriginY: %f\n", params.OriginY)
 	fmt.Printf("Axis span: %f\n", params.AxisSpan)
+}
+
+func encodeColorForPrint(color ColorParams) string {
+	return fmt.Sprintf("%s(%s, %s, %s)", color.ColorSpace, color.C1, color.C2, color.C3)
 }

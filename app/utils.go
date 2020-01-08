@@ -50,7 +50,7 @@ func WriteFile(filename string, data string) {
 }
 
 func MakeDir(path string) {
-	err := os.Mkdir(path, os.ModePerm)
+	err := os.MkdirAll(path, os.ModePerm)
 	if err != nil {
 		if !strings.Contains(err.Error(), "file exists") {
 			panic(err)

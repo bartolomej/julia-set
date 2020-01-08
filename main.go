@@ -7,66 +7,40 @@ import (
 	"strconv"
 )
 
+const (
+	ExampleConfig = "example.renders.json"
+	Config        = "renders.json"
+)
+
 func main() {
 	var params app.RenderParams
 
 	// init app folders
 	app.MakeDir("out")
-	app.MakeDir("cache")
 
 	if len(os.Args) == 2 && os.Args[1] == "default-image" {
-		params = getDefaultImageParams()
+		params = app.ParseFileParams(ExampleConfig, "smooth-boundaries")
 	} else if len(os.Args) == 2 && os.Args[1] == "default-video" {
-		panic("Video rendering not implemented yet")
+		params = app.ParseFileParams(ExampleConfig, "stripy-video")
 	} else if len(os.Args) == 2 {
-		params = app.ParseFileParams(os.Args[1], "")
-	} else if len(os.Args) == 3 {
-		params = app.ParseFileParams(os.Args[1], os.Args[2])
-	} else if len(os.Args) > 4 {
+		// use only parameters defined in config file
+		params = app.ParseFileParams(Config, os.Args[1])
+	} else if len(os.Args) > 3 {
+		// use cli params and overwrite default params
 		params = parseCliParams()
 	} else {
-		params = app.ParseFileParams("stripy-video", "")
+		// only for development mode
+		params = app.ParseFileParams(ExampleConfig, "smooth-boundaries")
 	}
 	app.Render(params)
 	fmt.Println("\n --> DONE !")
 }
 
 func parseCliParams() app.RenderParams {
-	res := paramToFloat(os.Args[1])
-	c := complex(paramToFloat(os.Args[2]), paramToFloat(os.Args[3]))
-	filename := fmt.Sprintf("r%fi%f_%s", real(c), imag(c), os.Args[4])
-	// use static config for cli args
-	image := app.AbstractParams{
-		C:        c,
-		OriginX:  0,
-		OriginY:  0,
-		AxisSpan: 2,
-	}
-	return app.RenderParams{
-		Resolution: res,
-		ReturnMode: app.ParseReturnMode(os.Args[4]),
-		Encoding:   "png",
-		Filename:   filename,
-		Image:      image,
-	}
-}
-
-func getDefaultImageParams() app.RenderParams {
-	return app.RenderParams{
-		Id:            "default",
-		Resolution:    100,
-		ReturnMode:    app.DISTANCE,
-		Encoding:      "png",
-		Filename:      "test-out",
-		MaxThreshold:  30,
-		MaxIterations: 20,
-		Image: app.AbstractParams{
-			C:        complex(0, 0),
-			OriginX:  0,
-			OriginY:  0,
-			AxisSpan: 2,
-		},
-	}
+	params := app.ParseFileParams("example.renders.json", "smooth-boundaries")
+	params.Resolution = paramToFloat(os.Args[1])
+	params.Image.C = complex(paramToFloat(os.Args[2]), paramToFloat(os.Args[3]))
+	return params
 }
 
 func paramToFloat(input string) float32 {

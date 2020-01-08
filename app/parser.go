@@ -44,8 +44,8 @@ type RenderParams struct {
 	Video         VideoParams
 }
 
-func ParseFileParams(configId string, outputFile string) RenderParams {
-	rawJsonConfig, err := ReadFile("renders.json")
+func ParseFileParams(configFile string, configId string) RenderParams {
+	rawJsonConfig, err := ReadFile(configFile)
 	if err != nil {
 		panic("Error opening renders.json config file")
 	}
@@ -59,7 +59,7 @@ func ParseFileParams(configId string, outputFile string) RenderParams {
 		id, idErr := getConfigProp(config, "id")
 		resolution, resolutionErr := getConfigProp(config, "resolution")
 		filename, _ := getConfigProp(config, "filename")
-		returnMode, renderModeErr := getConfigProp(config, "returnMode")
+		returnMode, returnModeErr := getConfigProp(config, "returnMode")
 		maxIterations, _ := getConfigProp(config, "maxIterations")
 		maxThreshold, _ := getConfigProp(config, "maxThreshold")
 		encoding, encodingErr := getConfigProp(config, "encoding")
@@ -74,8 +74,8 @@ func ParseFileParams(configId string, outputFile string) RenderParams {
 		if idErr != nil {
 			configErrors = append(configErrors, idErr)
 		}
-		if renderModeErr != nil {
-			configErrors = append(configErrors, renderModeErr)
+		if returnModeErr != nil {
+			configErrors = append(configErrors, returnModeErr)
 		}
 		if encodingErr != nil {
 			configErrors = append(configErrors, encodingErr)
@@ -90,15 +90,14 @@ func ParseFileParams(configId string, outputFile string) RenderParams {
 		if filename == nil {
 			filename = id
 		}
-		if outputFile != "" {
-			filename = outputFile
-		}
 		if maxIterations == nil {
 			maxIterations = 20.0
 		}
 		if maxThreshold == nil {
 			maxThreshold = 20.0
 		}
+
+		handleErrors(configErrors)
 
 		renderParams := RenderParams{
 			Id:            id.(string),
@@ -115,7 +114,6 @@ func ParseFileParams(configId string, outputFile string) RenderParams {
 		if static != nil {
 			renderParams.Image = parseAbstractParams(ParseJsonObject(static))
 			renderParams.Filename += encodeParams(renderParams, false)
-			handleErrors(configErrors)
 			printParams(renderParams)
 			return renderParams
 		}
@@ -138,6 +136,8 @@ func ParseFileParams(configId string, outputFile string) RenderParams {
 			configErrors = append(configErrors, durationErr)
 		}
 
+		handleErrors(configErrors)
+
 		renderParams.Video = VideoParams{
 			Fps:      int(fps.(float64)),
 			Duration: duration.(float64),
@@ -146,7 +146,6 @@ func ParseFileParams(configId string, outputFile string) RenderParams {
 		}
 
 		renderParams.Filename += encodeParams(renderParams, true)
-		handleErrors(configErrors)
 		printParams(renderParams)
 		return renderParams
 	}

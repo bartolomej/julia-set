@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/jpeg"
 	"image/png"
+	"log"
 	"math"
 	"os"
 	"os/exec"
@@ -15,7 +16,6 @@ import (
 )
 
 func Render(params RenderParams) {
-	params.Folder = "out"
 	if (params.Video != VideoParams{}) {
 		renderVideo(params)
 	} else if (params.Image != AbstractParams{}) {
@@ -24,6 +24,13 @@ func Render(params RenderParams) {
 }
 
 func renderVideo(params RenderParams) {
+
+	if len(params.Folder) == 0 {
+		params.Folder = params.Id + "/img"
+	} else {
+		params.Folder += "/img"
+	}
+
 	totalFrames := int(float64(params.Video.Fps) * params.Video.Duration)
 
 	centerX := params.Video.Start.OriginX
@@ -40,11 +47,11 @@ func renderVideo(params RenderParams) {
 
 	C := params.Video.Start.C
 	diffC := params.Video.End.C - params.Video.Start.C
-	stepC := diffC / complex(float32(totalFrames), float32(totalFrames))
+	stepC := diffC / complex(float32(totalFrames), 0)
 
 	exp := params.Video.Start.Exponent
 	diffExp := params.Video.End.Exponent - params.Video.Start.Exponent
-	stepExp := diffExp / complex(float32(totalFrames), float32(totalFrames))
+	stepExp := diffExp / complex(float32(totalFrames), 0)
 
 	digits := strconv.Itoa(len(strconv.Itoa(totalFrames)))
 
@@ -65,8 +72,9 @@ func renderVideo(params RenderParams) {
 		C += stepC
 	}
 
-	inputDir := "cache/" + params.Id + "/frame%0" + digits + "d.png"
-	outputDir := fmt.Sprintf("out/%s.mp4", params.Id)
+	inputDir := "out/" + params.Folder + "/frame%0" + digits + "d.png"
+	params.Folder = strings.ReplaceAll(params.Folder, "/img", "")
+	outputDir := fmt.Sprintf("out/%s/%s.mp4", params.Folder, params.Id)
 
 	// DOCS: https://trac.ffmpeg.org/wiki/Slideshow
 	// ffmpeg -framerate 30 -i frame%02d.png video.mp4
@@ -77,18 +85,22 @@ func renderVideo(params RenderParams) {
 		"-i",
 		inputDir,
 		outputDir,
+		"-loglevel", // no log output
+		"quiet",
+		"-y", // auto overwrite
 	)
-	stdout, err := cmd.Output()
-
+	out, err := cmd.Output()
 	if err != nil {
-		fmt.Println(err.Error())
-		return
+		log.Fatal(err)
 	}
-
-	fmt.Println(string(stdout))
+	fmt.Print("Output: " + string(out))
 }
 
+// TODO: SMOOTH ITERATION: c := math.Pow(math.E, -set[y*stepY][x*stepX])
 func renderImage(params RenderParams) {
+	if len(params.Folder) == 0 {
+		params.Folder = params.Id
+	}
 	setParams := SetParams{
 		OriginX:      params.Image.OriginX,
 		OriginY:      params.Image.OriginY,
@@ -108,14 +120,13 @@ func renderImage(params RenderParams) {
 	for y := 0; y < size; y++ {
 		for x := 0; x < size; x++ {
 			c := set[y*stepY][x*stepX]
-			// TODO: SMOOTH ITERATION: c := math.Pow(math.E, -set[y*stepY][x*stepX])
 			img.Set(x, y, evalColor(c, params.Color))
 		}
 		progress := (100 * y) / size
 		fmt.Print("\rRENDERING IMAGE: " + strconv.Itoa(progress) + "%")
 	}
 	fmt.Println()
-	saveImage(params.Folder, params.Filename, img, params.Encoding, params.Id)
+	saveImage(params.Folder, params.Filename, img, params.Encoding)
 }
 
 func evalColor(c float64, params ColorParams) colorful.Color {
@@ -186,9 +197,9 @@ func evalColor(c float64, params ColorParams) colorful.Color {
 	return color
 }
 
-func saveImage(folder string, filename string, im image.Image, encoding string, id string) {
+func saveImage(folder string, filename string, im image.Image, encoding string) {
 	// make folder for current configuration
-	path := fmt.Sprintf("%s/%s", folder, id)
+	path := fmt.Sprintf("out/%s", folder)
 	MakeDir(path)
 	file, err := os.Create(fmt.Sprintf("%s/%s.%s", path, filename, encoding))
 	if err != nil {

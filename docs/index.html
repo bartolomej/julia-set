@@ -26,7 +26,8 @@
         \(C\) is a hyper parameter that changes the behaviour of the system.
     </p>
     <p>
-        We compute the set by testing for every point on a plane if that point \(Z\) "<i>converges</i>" towards some other point (in other words it remains "bounded") or "<i>diverges</i>" towards
+        We compute the set by testing for every point on a plane if that point \(Z\) "<i>converges</i>" towards some
+        other point (in other words it remains "bounded") or "<i>diverges</i>" towards
         infinity after \(n\) iterations. Points that remain bounded are part of the Julia set.
     </p>
 </header>
@@ -52,6 +53,16 @@
     </div>
 </section>
 
+<section style="background-color: black; margin: 50px 0">
+    <div class="container">
+        <div>
+            <img alt="set" src="examples/giphy1.gif">
+        </div>
+        <div>
+            <img alt="set" src="examples/giphy2.gif">
+        </div>
+    </div>
+</section>
 
 <section style="background-color: #0c0c0c;">
     <div class="container">
@@ -100,10 +111,13 @@
 
 <footer>
     <p>
-        All those images are rendered with <a target="_blank" href="https://github.com/bartolomej/complex-set-art">this</a> software that I build using Go programming language.
+        All those images are rendered with <a target="_blank"
+                                              href="https://github.com/bartolomej/complex-set-art">this</a> software
+        that I build using Go programming language.
     </p>
     <p>
-        Check out my other (web based) julia set visualization <a target="_blank" href="https://bartolomej.github.io/julia-set/">here</a>.
+        Check out my other (web based) julia set visualization <a target="_blank"
+                                                                  href="https://bartolomej.github.io/julia-set/">here</a>.
     </p>
 </footer>
 
@@ -113,23 +127,24 @@
     for (let img of images) {
         img.addEventListener('click', imgClickHandler)
     }
+
     function imgClickHandler(e) {
         if (zoomedIn) {
             e.target.classList.remove("zoom-in")
-			let bcg = document.getElementById("bcg");
-			document.getElementsByTagName("body")[0].removeChild(bcg);
+            let bcg = document.getElementById("bcg");
+            document.getElementsByTagName("body")[0].removeChild(bcg);
         } else {
             e.target.className += "zoom-in";
-			let bcg = document.createElement("div");
-			bcg.id = "bcg";
-			bcg.style.position = "fixed";
-			bcg.style.top = "0";
-			bcg.style.bottom = "0";
-			bcg.style.right = "0";
-			bcg.style.left = "0";
-			bcg.style.backgroundColor = "black";
-			bcg.style.zIndex = "1";
-			document.getElementsByTagName("body")[0].appendChild(bcg);
+            let bcg = document.createElement("div");
+            bcg.id = "bcg";
+            bcg.style.position = "fixed";
+            bcg.style.top = "0";
+            bcg.style.bottom = "0";
+            bcg.style.right = "0";
+            bcg.style.left = "0";
+            bcg.style.backgroundColor = "black";
+            bcg.style.zIndex = "1";
+            document.getElementsByTagName("body")[0].appendChild(bcg);
         }
         zoomedIn = !zoomedIn;
     }

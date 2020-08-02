@@ -8,8 +8,9 @@ import (
 )
 
 const (
-	ExampleConfig = "example.renders.json"
-	Config        = "renders.json"
+	ExampleConfig   = "example.config.json"
+	Config          = "config.json"
+	DefaultConfigId = "default"
 )
 
 func main() {
@@ -30,14 +31,14 @@ func main() {
 		params = parseCliParams()
 	} else {
 		// only for development mode
-		params = app.ParseFileParams(ExampleConfig, "smooth-boundaries")
+		params = app.ParseFileParams(ExampleConfig, DefaultConfigId)
 	}
 	app.Render(params)
 	fmt.Println("\n --> DONE !")
 }
 
 func parseCliParams() app.RenderParams {
-	params := app.ParseFileParams("example.renders.json", "smooth-boundaries")
+	params := app.ParseFileParams("example.config.json", DefaultConfigId)
 	params.Resolution = paramToFloat(os.Args[1])
 	params.Image.C = complex(paramToFloat(os.Args[2]), paramToFloat(os.Args[3]))
 	return params

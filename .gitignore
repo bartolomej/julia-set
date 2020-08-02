@@ -1,6 +1,6 @@
 /.idea
 go.sum
-renders.json
+config.json
 /out
 /out/*
 /cache

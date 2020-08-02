@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"math"
 	"math/cmplx"
 	"strconv"
 )
@@ -59,7 +60,7 @@ func CalculateSet(set SetParams) [][]float64 {
 				}
 			}
 			if set.ReturnMode == ITERATION {
-				resX = append(resX, float64(i))
+				resX = append(resX, smoothIter(i, cmplx.Abs(complex128(set.Exponent)), z))
 			} else if set.ReturnMode == DISTANCE {
 				resX = append(resX, cmplx.Abs(z))
 			} else {
@@ -75,4 +76,10 @@ func CalculateSet(set SetParams) [][]float64 {
 	}
 	fmt.Println()
 	return results
+}
+
+// SMOOTH ITERATION COUNT TAKEN FROM:
+// http://linas.org/art-gallery/escape/smooth.html
+func smoothIter(n int, d float64, z complex128) float64 {
+	return float64(n) + 1 - math.Log(math.Log(cmplx.Abs(z)))/math.Log(d)
 }
